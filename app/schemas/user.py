@@ -3,17 +3,19 @@ from pydantic import BaseModel, EmailStr
 
 class UserCreate(BaseModel):
     username: str
-    email: EmailStr
+    email: EmailStr | None = None
     password: str
 
 
-class UserRead(UserCreate):
+class UserRead(BaseModel):
     id: int
     post_auto_reply: bool
     reply_after: float
+    username: str
+    email: EmailStr | None = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserUpdate(UserCreate):
