@@ -15,3 +15,4 @@ class Post(BaseModel):
     owner_id = Column(Integer, ForeignKey("users.id"))
 
     owner = relationship("User", back_populates="posts")
+    comments = relationship("Comment", back_populates="post")
