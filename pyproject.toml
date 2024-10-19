@@ -13,6 +13,7 @@ uvicorn = "^0.32.0"
 pydantic-settings = "^2.6.0"
 alembic = "^1.13.3"
 psycopg2-binary = "^2.9.10"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 
 
 [build-system]
