@@ -34,3 +34,13 @@ class UserRepository:
             UserRead.model_validate(city[0])
             for city in cities_list.fetchall()
         ]
+
+    async def get_user_by_id(self, user_id: int) -> UserRead:
+        query = select(User).where(User.id == user_id)
+        result = await self.session.execute(query)
+        user_db = result.scalar_one_or_none()
+        if user_db:
+            return UserRead.model_validate(
+                user_db
+            )
+
