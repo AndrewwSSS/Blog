@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str
     ALGORITHM: str = "HS256"
     POSTGRES_PORT: int = 5432
+    SECRET_KEY: str
+    ACCESS_TOKEN_EXPIRE_MINUTES = 30
+    REFRESH_TOKEN_EXPIRE_DAYS = 7
 
     class Config:
         env_file = ".env"
