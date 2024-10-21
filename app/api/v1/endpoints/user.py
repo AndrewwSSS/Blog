@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from app.core.auth.dependencies import get_current_user
 from app.dependencies.services import get_user_service
+from app.schemas.jwt import TokenRefreshRequest
 from app.schemas.user import User, UserRead
 from app.services.user_service import UserService
 
@@ -36,9 +37,9 @@ async def login(
 
 @router.post("/token/refresh")
 async def refresh_access_token(
-    refresh_token: str,
+    token_request: TokenRefreshRequest,
     service: UserService = Depends(get_user_service)
 ):
-    return await service.refresh_access_token(refresh_token)
-
-
+    return await service.refresh_access_token(
+        token_request.refresh_token
+    )
