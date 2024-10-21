@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 from app.db.base_model import BaseModel
 
 
-class Post(BaseModel):
+class PostDB(BaseModel):
     __tablename__ = "posts"
 
     id = Column(Integer, primary_key=True)
@@ -15,4 +15,4 @@ class Post(BaseModel):
     owner_id = Column(Integer, ForeignKey("users.id"))
 
     owner = relationship("UserDB", back_populates="posts")
-    comments = relationship("Comment", back_populates="post")
+    comments = relationship("CommentDB", back_populates="post")
