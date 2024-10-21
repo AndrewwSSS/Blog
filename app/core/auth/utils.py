@@ -27,13 +27,18 @@ def create_refresh_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
-def verify_token(token: str) -> int:
+def verify_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("user_id")
+        token_type: str = payload.get("token_type")
+
         if not user_id or not isinstance(user_id, int):
             raise jwt.InvalidTokenError("Invalid token")
-        return int(user_id)
+        if not token_type or token_type not in settings.TOKEN_TYPES:
+            raise jwt.InvalidTokenError("Invalid token type")
+
+        return payload
     except jwt.ExpiredSignatureError:
         raise jwt.InvalidTokenError("Token has expired")
     except jwt.InvalidTokenError:
