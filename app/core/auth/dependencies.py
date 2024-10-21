@@ -15,10 +15,11 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_session)
 ) -> UserRead:
+
     try:
-        user_id = verify_token(token)
+        payload = verify_token(token)
         repository = UserRepository(session)
-        user = await repository.get_user_by_id(user_id)
+        user = await repository.get_user_by_id(payload["user_id"])
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
