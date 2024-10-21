@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     POSTGRES_PORT: int = 5432
     SECRET_KEY: str
-    ACCESS_TOKEN_EXPIRE_MINUTES = 30
-    REFRESH_TOKEN_EXPIRE_DAYS = 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     class Config:
         env_file = ".env"
