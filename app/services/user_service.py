@@ -68,7 +68,7 @@ class UserService:
             )
         if payload["token_type"] != "refresh":
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token type",
                 headers={"WWW-Authenticate": "Bearer"},
             )
