@@ -66,6 +66,12 @@ class UserService:
                 detail="Invalid token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        if payload["token_type"] != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid token type",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         user = await self.get_user_by_id(payload["user_id"])
 
         new_access_token = create_access_token(
