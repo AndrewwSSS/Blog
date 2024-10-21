@@ -3,20 +3,23 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class PostCreate(BaseModel):
+class Post(BaseModel):
     title: str
     content: str
 
+    class Config:
+        from_attributes = True
 
-class PostRead(PostCreate):
+
+class PostRead(Post):
     id: int
     owner_id: int
     date_posted: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
-class PostUpdate(PostRead):
+class PostUpdate(Post):
     title: str | None = None
     content: str | None = None

@@ -13,5 +13,5 @@ class UserDB(BaseModel):
     post_auto_reply = Column(Boolean, default=False)
     reply_after = Column(Float, default=1)
 
-    posts = relationship("Post", back_populates="owner")
-    comments = relationship("Comment", back_populates="owner")
+    posts = relationship("PostDB", back_populates="owner")
+    comments = relationship("CommentDB", back_populates="owner")

@@ -32,10 +32,10 @@ class UserRepository:
 
     async def get_users(self) -> [UserRead]:
         query = select(UserDB)
-        cities_list = await self.session.execute(query)
+        users_list = await self.session.execute(query)
         return [
             UserRead.model_validate(city[0])
-            for city in cities_list.fetchall()
+            for city in users_list.fetchall()
         ]
 
     async def get_user_by_id(self, user_id: int) -> UserRead | None:

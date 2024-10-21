@@ -6,11 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth.utils import verify_token
 from app.db.session import get_session
 from app.repositories.user_repository import UserRepository
+from app.schemas.user import UserRead
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_session)):
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    session: AsyncSession = Depends(get_session)
+) -> UserRead:
     try:
         user_id = verify_token(token)
         repository = UserRepository(session)
