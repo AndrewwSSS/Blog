@@ -24,6 +24,13 @@ async def get_current_user(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if not payload["token_type"] == "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+                headers={"WWW-Authenticate": "Bearer"},
             )
         return user
     except jwt.InvalidTokenError:
