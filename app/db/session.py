@@ -4,16 +4,16 @@ from app.core.config import settings
 
 SQLALCHEMY_DATABASE_URL = settings.database_url
 
-engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_async_engine(SQLALCHEMY_DATABASE_URL, future=True, echo=True)
+
 async_session = sessionmaker(
+    class_=AsyncSession,
     autocommit=False,
     autoflush=False,
-    bind=engine,
-    class_=AsyncSession,
     expire_on_commit=False
 )
 
 
 async def get_session() -> AsyncSession:
-    async with async_session() as session:
+    async with async_session(bind=engine) as session:
         yield session
