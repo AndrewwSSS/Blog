@@ -1,5 +1,5 @@
 from .post import Post
-from .user import User
+from .user import UserDB
 from .comment import Comment
 
-__all__ = ["User", "Post", "Comment"]
+__all__ = ["UserDB", "Post", "Comment"]

@@ -20,5 +20,5 @@ class Comment(BaseModel):
     post_id = Column(Integer, ForeignKey("posts.id"))
     date_posted = Column(DateTime, default=datetime.utcnow)
 
-    owner = relationship("User", back_populates="comments")
+    owner = relationship("UserDB", back_populates="comments")
     post = relationship("Post", back_populates="comments")
