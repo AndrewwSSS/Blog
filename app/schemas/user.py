@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr
 
 
-class UserCreate(BaseModel):
+class User(BaseModel):
     username: str
     email: EmailStr | None = None
     password: str
@@ -18,7 +18,7 @@ class UserRead(BaseModel):
         from_attributes = True
 
 
-class UserUpdate(UserCreate):
+class UserUpdate(User):
     username: str | None = None
     email: EmailStr | None = None
     password: str | None = None

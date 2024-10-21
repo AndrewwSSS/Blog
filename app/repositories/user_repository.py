@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User
-from app.schemas.user import UserCreate
+from app.schemas.user import User
 from app.schemas.user import UserRead
 
 
@@ -12,7 +12,7 @@ class UserRepository:
 
     async def create_user(
         self,
-        user: UserCreate,
+        user: User,
     ) -> UserRead:
         user_db = User(
             username=user.username,
