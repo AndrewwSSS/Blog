@@ -59,14 +59,20 @@ class UserService:
 
     async def refresh_access_token(self, refresh_token: str) -> dict:
         try:
-            user_id = verify_token(refresh_token)
+            payload = verify_token(refresh_token)
         except InvalidTokenError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        user = await self.get_user_by_id(user_id)
+        if payload["token_type"] != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        user = await self.get_user_by_id(payload["user_id"])
 
         new_access_token = create_access_token(
             data={"user_id": user.id},
