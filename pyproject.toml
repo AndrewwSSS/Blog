@@ -16,6 +16,7 @@ psycopg2-binary = "^2.9.10"
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 pydantic = {extras = ["email"], version = "^2.9.2"}
 asyncpg = "^0.29.0"
+pyjwt = "^2.9.0"
 
 
 [build-system]
