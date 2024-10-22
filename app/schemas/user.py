@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator
+from pydantic import field_validator
 
 
 class User(BaseModel):
@@ -24,6 +25,11 @@ class UserRead(BaseModel):
 class UserUpdate(BaseModel):
     post_auto_reply: bool | None = None
     reply_after: float | None = None
+
+    @field_validator("reply_after")
+    def check_reply_after(cls, value) -> float:
+        if value and value < 1:
+            raise ValueError("reply_after must be greater than 1(second)")
 
 
 class UserInDB(BaseModel):
