@@ -1,4 +1,5 @@
 from typing import Type
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -44,6 +45,25 @@ class CommentRepository:
         return CommentRead.model_validate(
             comment_db
         )
+
+    async def get_comments_analytics(
+        self,
+        date_from: datetime,
+        date_to: datetime
+    ):
+        query = (
+            select(
+                func.date(Comment.created_at).label("date"),
+                func.count(Comment.id).label("total_comments"),
+                func.sum(func.cast(Comment.is_blocked, Integer)).label("blocked_comments")
+            )
+            .where(Comment.created_at.between(date_from, date_to))
+            .group_by(func.date(Comment.created_at))
+            .order_by(func.date(Comment.created_at))
+        )
+
+        result = await self.session.execute(query)
+        return result.all()
 
 
 
