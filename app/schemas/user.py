@@ -29,7 +29,7 @@ class UserUpdate(BaseModel):
     @field_validator("reply_after")
     def check_reply_after(cls, value) -> float:
         if value and value < 1:
-            raise ValueError("reply_after must be greater than 1(second)")
+            raise ValueError("reply_after must be greater than 1")
         return value
 
 
