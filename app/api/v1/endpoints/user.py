@@ -54,3 +54,13 @@ async def update_user(
     service: UserService = Depends(get_user_service)
 ) -> UserRead:
     return await service.update_user(user.id, user_update)
+
+
+@router.get("/me", response_model=UserRead)
+async def read_users_me(
+    user: UserRead = Depends(get_current_user),
+    service: UserService = Depends(get_user_service)
+) -> UserRead:
+    return await service.get_user_by_id(
+        user.id,
+    )
