@@ -1,8 +1,8 @@
 from typing import Type
-from datetime import datetime
+from datetime import datetime, date
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func, Integer
 
 from app.core.validation.base_content_validator import BaseContentValidator
 from app.models import CommentDB
@@ -48,18 +48,19 @@ class CommentRepository:
 
     async def get_comments_analytics(
         self,
-        date_from: datetime,
-        date_to: datetime
+        date_from: date,
+        date_to: date
     ):
         query = (
             select(
-                func.date(Comment.created_at).label("date"),
-                func.count(Comment.id).label("total_comments"),
-                func.sum(func.cast(Comment.is_blocked, Integer)).label("blocked_comments")
+                func.date(CommentDB.date_posted).label("date"),
+                func.count(CommentDB.id).label("total_comments"),
+                func.sum(func.cast(CommentDB.is_blocked, Integer)).label("blocked_comments")
             )
-            .where(Comment.created_at.between(date_from, date_to))
-            .group_by(func.date(Comment.created_at))
-            .order_by(func.date(Comment.created_at))
+            .where(CommentDB.date_posted >= date_from)
+            .where(CommentDB.date_posted <= date_to)
+            .group_by(func.date(CommentDB.date_posted))
+            .order_by(func.date(CommentDB.date_posted))
         )
 
         result = await self.session.execute(query)
