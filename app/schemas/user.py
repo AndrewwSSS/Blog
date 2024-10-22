@@ -22,9 +22,6 @@ class UserRead(BaseModel):
 
 
 class UserUpdate(User):
-    username: str | None = None
-    email: EmailStr | None = None
-    password: str | None = None
     post_auto_reply: bool | None = None
     reply_after: float | None = None
 
