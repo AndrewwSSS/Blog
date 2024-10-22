@@ -21,7 +21,7 @@ class UserRead(BaseModel):
         from_attributes = True
 
 
-class UserUpdate(User):
+class UserUpdate(BaseModel):
     post_auto_reply: bool | None = None
     reply_after: float | None = None
 
