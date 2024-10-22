@@ -9,6 +9,7 @@ from app.repositories.user_repository import UserRepository
 from app.schemas.user import User
 from app.schemas.user import UserInDB
 from app.schemas.user import UserRead
+from app.schemas.user import UserUpdate
 
 
 class UserService:
@@ -78,4 +79,10 @@ class UserService:
             data={"user_id": user.id},
         )
         return {"access_token": new_access_token}
+
+    async def update_user(self, user_id: int, user: UserUpdate) -> UserRead:
+        return await self.repository.update_user_by_id(
+            user_id=user_id,
+            user=user
+        )
 
