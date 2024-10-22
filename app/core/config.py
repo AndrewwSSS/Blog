@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     TOKEN_TYPES: list = ["access", "refresh"]
-    OPENAI_API_KEY: str
-    GROQ_API_KEY: str
+    OPENAI_API_KEY: str | None = None
+    GROQ_API_KEY: str | None = None
     CONTENT_VALIDATOR_CLASS: Type[BaseContentValidator] = GroqValidator
 
     class Config:
