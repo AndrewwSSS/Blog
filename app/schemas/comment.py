@@ -12,6 +12,7 @@ class CommentRead(Comment):
     id: int
     owner_id: int
     date_posted: datetime
+    is_blocked: bool
 
     class Config:
         from_attributes = True
