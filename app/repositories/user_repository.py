@@ -6,6 +6,7 @@ from app.models import UserDB
 from app.schemas.user import User
 from app.schemas.user import UserInDB
 from app.schemas.user import UserRead
+from app.schemas.user import UserUpdate
 
 
 class UserRepository:
@@ -55,6 +56,23 @@ class UserRepository:
             return UserInDB.model_validate(
                 user_db
             )
+
+    async def update_user_by_id(
+        self,
+        user_id: int,
+        user: UserUpdate,
+    ) -> UserRead | None:
+        user_db = await self.get_user_by_id(
+            user_id=user_id,
+        )
+        if user.post_auto_reply:
+            user_db.post_auto_reply = user.post_auto_reply
+        if user.reply_after:
+            user_db.reply_after = user.reply_after
+
+        await self.session.refresh(user_db)
+        await self.session.commit()
+        return UserRead.model_validate(user_db)
 
     async def get_user_hashed_password(self, user_id: int) -> str | None:
         query = select(UserDB).where(UserDB.id == user_id)
