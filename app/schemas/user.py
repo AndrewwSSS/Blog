@@ -30,6 +30,7 @@ class UserUpdate(BaseModel):
     def check_reply_after(cls, value) -> float:
         if value and value < 1:
             raise ValueError("reply_after must be greater than 1(second)")
+        return value
 
 
 class UserInDB(BaseModel):
