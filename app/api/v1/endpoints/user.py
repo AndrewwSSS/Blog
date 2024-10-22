@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from app.core.auth.dependencies import get_current_user
 from app.dependencies.services import get_user_service
+from app.schemas.jwt import LoginResponse
 from app.schemas.jwt import TokenRefreshRequest
 from app.schemas.user import User, UserRead
 from app.services.user_service import UserService
@@ -27,7 +28,7 @@ async def get_users_endpoint(
     return await service.read_users()
 
 
-@router.post("/token")
+@router.post("/token", response_model=LoginResponse)
 async def login(
     user: User,
     service: UserService = Depends(get_user_service)
