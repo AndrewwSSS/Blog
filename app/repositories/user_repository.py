@@ -65,7 +65,7 @@ class UserRepository:
         user_id: int,
         user: UserUpdate,
     ) -> UserRead | None:
-        user_db = await self.get_user_by_id(
+        user_db = await self._get_user_by_id(
             user_id=user_id,
         )
 
@@ -76,7 +76,7 @@ class UserRepository:
 
         print(user_db)
         await self.session.commit()
-        # await self.session.refresh(user_db)
+        await self.session.refresh(user_db)
         return UserRead.model_validate(user_db)
 
     async def get_user_hashed_password(self, user_id: int) -> str | None:
