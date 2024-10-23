@@ -7,6 +7,7 @@ SQLALCHEMY_DATABASE_URL = settings.database_url
 engine = create_async_engine(SQLALCHEMY_DATABASE_URL, future=True, echo=True)
 
 async_session = sessionmaker(
+    bind=engine,
     class_=AsyncSession,
     autocommit=False,
     autoflush=False,
@@ -15,5 +16,5 @@ async_session = sessionmaker(
 
 
 async def get_session() -> AsyncSession:
-    async with async_session(bind=engine) as session:
+    async with async_session() as session:
         yield session
