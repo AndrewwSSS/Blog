@@ -7,7 +7,6 @@ from sqlalchemy import select, func, Integer
 from app.core.validation.base_content_validator import BaseContentValidator
 from app.models import CommentDB
 from app.schemas.comment import CommentRead, Comment
-from app.schemas.user import UserRead
 
 
 class CommentRepository:
@@ -34,7 +33,7 @@ class CommentRepository:
         )
 
         comment_db = CommentDB(
-            **comment.dict(),
+            **comment.model_dump(),
             owner_id=user_id,
             is_blocked=not is_validated
         )
@@ -65,6 +64,3 @@ class CommentRepository:
 
         result = await self.session.execute(query)
         return result.all()
-
-
-

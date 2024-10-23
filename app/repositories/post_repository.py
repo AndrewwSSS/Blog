@@ -7,7 +7,6 @@ from app.core.validation.base_content_validator import BaseContentValidator
 from app.models import PostDB
 from app.schemas.post import Post
 from app.schemas.post import PostRead
-from app.schemas.user import UserRead
 
 
 class PostRepository:
@@ -25,7 +24,7 @@ class PostRepository:
     async def create_post(
         self,
         post: Post,
-        user: UserRead,
+        user_id: int,
         content_validator_class: Type[BaseContentValidator]
     ) -> PostRead:
         content_validator = content_validator_class()
@@ -34,8 +33,8 @@ class PostRepository:
         )
 
         post_db = PostDB(
-            **post.dict(),
-            owner_id=user.id,
+            **post.model_dump(),
+            owner_id=user_id,
             is_blocked=not is_validated
         )
 

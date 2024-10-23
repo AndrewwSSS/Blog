@@ -13,7 +13,7 @@ from app.services.user_service import UserService
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserRead)
+@router.post("/register", response_model=UserRead, status_code=201)
 async def create_user_endpoint(
     user: User,
     service: UserService = Depends(get_user_service)

@@ -1,6 +1,8 @@
 from datetime import datetime
+from typing import ClassVar
 
 from pydantic import BaseModel
+from pydantic import ConfigDict
 
 
 class Comment(BaseModel):
@@ -14,8 +16,9 @@ class CommentRead(Comment):
     date_posted: datetime
     is_blocked: bool
 
-    class Config:
-        from_attributes = True
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class CommentUpdate(Comment):

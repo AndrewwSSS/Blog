@@ -16,7 +16,7 @@ class PostService:
     async def create_post(self, post: Post, user: UserRead) -> PostRead:
         post = await self.repository.create_post(
             post,
-            user,
+            user.id,
             settings.CONTENT_VALIDATOR_CLASS
         )
         if user.post_auto_reply:
