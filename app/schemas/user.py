@@ -1,4 +1,7 @@
+from typing import ClassVar
+
 from pydantic import BaseModel, EmailStr, validator
+from pydantic import ConfigDict
 from pydantic import field_validator
 
 
@@ -7,8 +10,9 @@ class User(BaseModel):
     email: EmailStr | None = None
     password: str
 
-    class Config:
-        from_attributes = True
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class UserRead(BaseModel):
@@ -18,8 +22,9 @@ class UserRead(BaseModel):
     username: str
     email: EmailStr | None = None
 
-    class Config:
-        from_attributes = True
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class UserUpdate(BaseModel):
@@ -41,5 +46,6 @@ class UserInDB(BaseModel):
     reply_after: float
     hashed_password: str
 
-    class Config:
-        from_attributes = True
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        from_attributes=True,
+    )
