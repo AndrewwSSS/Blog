@@ -1,5 +1,7 @@
+from typing import ClassVar
 from typing import Type
 
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
 from app.core.reply_generators.base_ai_reply_generator import BaseAIReplyGenerator
@@ -31,8 +33,9 @@ class Settings(BaseSettings):
     TEST_DB_HOST: str
     TEST_DB_NAME: str
 
-    class Config:
-        env_file = ".env"
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        env_file=".env",
+    )
 
     @property
     def database_url(self) -> str:
