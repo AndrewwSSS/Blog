@@ -17,7 +17,11 @@ celery = Celery(
 
 @celery.task
 def create_reply_for_post(post_id: int):
-    asyncio.run(_create_reply_for_post(post_id))
+    loop = asyncio.get_event_loop()
+    if loop.is_running():
+        asyncio.ensure_future(_create_reply_for_post(post_id))
+    else:
+        loop.run_until_complete(_create_reply_for_post(post_id))
 
 
 async def _create_reply_for_post(post_id: int) -> None:
@@ -35,21 +39,15 @@ async def _create_reply_for_post(post_id: int) -> None:
     reply_content = await reply_generator.generate_post_reply(
         post.title, post.content,
     )
-    user_repo = UserRepository(session)
-    bot = await user_repo.get_user_by_username(
-        settings.REPLY_BOT_USERNAME
-    )
-    if not bot:
-        raise ValueError("Bot not found")
 
     comment_repo = CommentRepository(session)
     comment = Comment(
         content=reply_content,
-        owner_id=bot.id,
         post_id=post_id,
     )
     await comment_repo.create_comment(
         comment,
-        bot,
+        post.owner_id,
         settings.CONTENT_VALIDATOR_CLASS,
     )
+    await session.close()
