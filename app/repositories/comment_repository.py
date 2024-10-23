@@ -34,7 +34,7 @@ class CommentRepository:
         )
 
         comment_db = CommentDB(
-            **comment.dict(),
+            **comment.model_dump(),
             owner_id=user_id,
             is_blocked=not is_validated
         )
