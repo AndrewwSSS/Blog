@@ -85,5 +85,3 @@ class UserRepository:
         user_db = result.scalar_one_or_none()
         if user_db:
             return user_db.hashed_password
-
-
