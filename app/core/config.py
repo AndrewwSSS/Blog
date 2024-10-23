@@ -1,6 +1,9 @@
 from typing import Type
 
 from pydantic_settings import BaseSettings
+
+from app.core.reply_generators.base_ai_reply_generator import BaseAIReplyGenerator
+from app.core.reply_generators.groq_reply_generator import GroqReplyGenerator
 from app.core.validation.groq_validator import GroqValidator, BaseContentValidator
 
 
@@ -18,6 +21,10 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str | None = None
     GROQ_API_KEY: str | None = None
     CONTENT_VALIDATOR_CLASS: Type[BaseContentValidator] = GroqValidator
+    REPLY_GENERATOR_CLASS: Type[BaseAIReplyGenerator] = GroqReplyGenerator
+    REDIS_HOST: str | None = "localhost"
+    REDIS_PORT: int = 6379
+    REPLY_BOT_USERNAME: str = "aboba_bot"
 
     class Config:
         env_file = ".env"
@@ -28,6 +35,10 @@ class Settings(BaseSettings):
                 f":{self.POSTGRES_PASSWORD}"
                 f"@{self.POSTGRES_HOST}"
                 f":5432/{self.POSTGRES_DB}")
+
+    @property
+    def celery_broker_url(self) -> str:
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/0"
 
 
 settings = Settings()

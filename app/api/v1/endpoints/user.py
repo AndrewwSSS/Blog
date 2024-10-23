@@ -7,6 +7,7 @@ from app.dependencies.services import get_user_service
 from app.schemas.jwt import LoginResponse
 from app.schemas.jwt import TokenRefreshRequest
 from app.schemas.user import User, UserRead
+from app.schemas.user import UserUpdate
 from app.services.user_service import UserService
 
 router = APIRouter()
@@ -22,7 +23,7 @@ async def create_user_endpoint(
 
 @router.get("/", response_model=List[UserRead])
 async def get_users_endpoint(
-    user: User = Depends(get_current_user),
+    user: UserRead = Depends(get_current_user),
     service: UserService = Depends(get_user_service)
 ) -> [UserRead]:
     return await service.read_users()
@@ -43,4 +44,23 @@ async def refresh_access_token(
 ):
     return await service.refresh_access_token(
         token_request.refresh_token
+    )
+
+
+@router.put("/me", response_model=UserRead)
+async def update_user(
+    user_update: UserUpdate,
+    user: UserRead = Depends(get_current_user),
+    service: UserService = Depends(get_user_service)
+) -> UserRead:
+    return await service.update_user(user.id, user_update)
+
+
+@router.get("/me", response_model=UserRead)
+async def read_users_me(
+    user: UserRead = Depends(get_current_user),
+    service: UserService = Depends(get_user_service)
+) -> UserRead:
+    return await service.get_user_by_id(
+        user.id,
     )

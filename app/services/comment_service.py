@@ -17,7 +17,7 @@ class CommentService:
     async def create_comment(self, comment: Comment, user: UserRead) -> CommentRead:
         return await self.repository.create_comment(
             comment,
-            user,
+            user.id,
             settings.CONTENT_VALIDATOR_CLASS
         )
 
