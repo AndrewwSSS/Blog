@@ -1,5 +1,5 @@
 from typing import Type
-from datetime import datetime, date
+from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, Integer
@@ -57,8 +57,8 @@ class CommentRepository:
                 func.count(CommentDB.id).label("total_comments"),
                 func.sum(func.cast(CommentDB.is_blocked, Integer)).label("blocked_comments")
             )
-            .where(CommentDB.date_posted >= date_from)
-            .where(CommentDB.date_posted <= date_to)
+            .where(func.date(CommentDB.date_posted) >= date_from)
+            .where(func.date(CommentDB.date_posted) <= date_to)
             .group_by(func.date(CommentDB.date_posted))
             .order_by(func.date(CommentDB.date_posted))
         )
