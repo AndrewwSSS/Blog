@@ -1,12 +1,10 @@
-import pytest
-
 from tests.conftest import client, async_session_maker
 
 
 def test_registration():
     create_user = {
         "username": "test_user_auth",
-        "email": "<EMAIL>@gmail.com",
+        "email": "test_asfsa@gmail.com",
         "password": "<PASSW3OR43D>",
     }
     response = client.post("/api/v1/users/register", json=create_user)
