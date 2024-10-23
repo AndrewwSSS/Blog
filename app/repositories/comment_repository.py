@@ -7,7 +7,6 @@ from sqlalchemy import select, func, Integer
 from app.core.validation.base_content_validator import BaseContentValidator
 from app.models import CommentDB
 from app.schemas.comment import CommentRead, Comment
-from app.schemas.user import UserRead
 
 
 class CommentRepository:
