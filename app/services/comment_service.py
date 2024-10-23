@@ -5,6 +5,7 @@ from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import Comment
 from app.schemas.comment import CommentRead
 from app.schemas.user import UserRead
+from app.tasks.init import validate_comment_content
 
 
 class CommentService:
@@ -15,11 +16,13 @@ class CommentService:
         return await self.repository.get_comments()
 
     async def create_comment(self, comment: Comment, user: UserRead) -> CommentRead:
-        return await self.repository.create_comment(
+        comment_created = await self.repository.create_comment(
             comment,
             user.id,
             settings.CONTENT_VALIDATOR_CLASS
         )
+        validate_comment_content.delay(comment_created.id)
+        return comment_created
 
     async def get_comments_analytics(self, date_from: date, date_to: date) -> dict:
         return await self.repository.get_comments_analytics(date_from, date_to)
