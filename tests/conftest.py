@@ -60,26 +60,14 @@ async def prepare_database():
         await conn.run_sync(BaseModel.metadata.drop_all)
 
 
-# @pytest.fixture(scope="function")
-# async def db():
-#     async with engine_test.begin() as conn:
-#         await conn.run_sync(BaseModel.metadata.drop_all)
-#
-#         yield db
-#     finally:
-#         db.close()
-#         # Очищаем базу данных после завершения каждого теста
-#         Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+# @pytest.fixture(scope="session")
+# def event_loop():
+#     try:
+#         loop = asyncio.get_running_loop()
+#     except RuntimeError:
+#         loop = asyncio.new_event_loop()
+#     yield loop
+#     loop.close()
 
 
 client = TestClient(app)
