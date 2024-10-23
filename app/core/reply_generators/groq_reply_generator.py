@@ -5,7 +5,8 @@ from app.core.reply_generators.base_ai_reply_generator import BaseAIReplyGenerat
 
 class GroqReplyGenerator(BaseAIReplyGenerator):
     MODEL = "llama3-8b-8192"
-    prompt = "Generate reply for post with title: '{title}',and content: '{content}'"
+    prompt = ("Generate reply for post with title: '{title}',and content: '{content}'."
+              "write only on post language, do not translate and always give only one answer")
 
     def _get_prompt(self, title: str, content: str) -> str:
         return self.prompt.format(title=title, content=content)
