@@ -25,17 +25,10 @@ class CommentRepository:
         self,
         comment: Comment,
         user_id: int,
-        content_validator_class: Type[BaseContentValidator]
     ) -> CommentRead:
-        content_validator = content_validator_class()
-        is_validated = await content_validator.validate_comment(
-            comment.content
-        )
-
         comment_db = CommentDB(
             **comment.model_dump(),
             owner_id=user_id,
-            is_blocked=not is_validated
         )
 
         self.session.add(comment_db)
@@ -64,3 +57,9 @@ class CommentRepository:
 
         result = await self.session.execute(query)
         return result.all()
+
+
+    async def get_commentDb_by_id(self, id: int) -> CommentDB | None:
+        query = select(CommentDB).where(CommentDB.id == id)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
