@@ -12,7 +12,6 @@ async def test_create_post(test_user):
         created_post = await repository.create_post(
             post,
             test_user.id,
-            MockContentValidator
         )
 
     assert created_post.content == post.content
