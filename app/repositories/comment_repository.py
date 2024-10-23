@@ -25,7 +25,7 @@ class CommentRepository:
     async def create_comment(
         self,
         comment: Comment,
-        user: UserRead,
+        user_id: int,
         content_validator_class: Type[BaseContentValidator]
     ) -> CommentRead:
         content_validator = content_validator_class()
@@ -35,7 +35,7 @@ class CommentRepository:
 
         comment_db = CommentDB(
             **comment.dict(),
-            owner_id=user.id,
+            owner_id=user_id,
             is_blocked=not is_validated
         )
 
