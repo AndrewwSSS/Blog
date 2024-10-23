@@ -46,3 +46,10 @@ class PostRepository:
         return PostRead.model_validate(
             post_db
         )
+
+    async def get_post_by_id(self, post_id: int) -> PostRead | None:
+        query = select(PostDB).where(PostDB.id == post_id)
+        result = await self.session.execute(query)
+        post_db = result.scalar_one_or_none()
+        if post_db:
+            return PostRead.model_validate(post_db)
