@@ -64,6 +64,3 @@ class CommentRepository:
 
         result = await self.session.execute(query)
         return result.all()
-
-
-
