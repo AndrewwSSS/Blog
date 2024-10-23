@@ -1,9 +1,6 @@
-from typing import Type
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.core.validation.base_content_validator import BaseContentValidator
 from app.models import PostDB
 from app.schemas.post import Post
 from app.schemas.post import PostRead
@@ -25,17 +22,10 @@ class PostRepository:
         self,
         post: Post,
         user_id: int,
-        content_validator_class: Type[BaseContentValidator]
     ) -> PostRead:
-        content_validator = content_validator_class()
-        is_validated = await content_validator.validate_post(
-            post.content, post.title
-        )
-
         post_db = PostDB(
             **post.model_dump(),
             owner_id=user_id,
-            is_blocked=not is_validated
         )
 
         self.session.add(post_db)
@@ -52,3 +42,9 @@ class PostRepository:
         post_db = result.scalar_one_or_none()
         if post_db:
             return PostRead.model_validate(post_db)
+
+    async def get_postDb_by_id(self, post_id: int) -> PostDB | None:
+        query = select(PostDB).where(PostDB.id == post_id)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
