@@ -21,14 +21,6 @@ async def create_user_endpoint(
     return await service.create_user(user)
 
 
-@router.get("/", response_model=List[UserRead])
-async def get_users_endpoint(
-    user: UserRead = Depends(get_current_user),
-    service: UserService = Depends(get_user_service)
-) -> [UserRead]:
-    return await service.read_users()
-
-
 @router.post("/token", response_model=LoginResponse)
 async def login(
     user: User,
