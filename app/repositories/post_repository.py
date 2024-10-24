@@ -47,4 +47,3 @@ class PostRepository:
         query = select(PostDB).where(PostDB.id == post_id)
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
-
