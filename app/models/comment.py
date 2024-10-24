@@ -1,0 +1,26 @@
+from datetime import datetime
+
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    ForeignKey,
+    DateTime,
+    Boolean
+)
+from sqlalchemy.orm import relationship
+from app.db.base_model import BaseModel
+
+
+class CommentDB(BaseModel):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True)
+    content = Column(String)
+    owner_id = Column(Integer, ForeignKey("users.id"))
+    is_blocked = Column(Boolean, default=False)
+    post_id = Column(Integer, ForeignKey("posts.id"))
+    date_posted = Column(DateTime, default=datetime.utcnow)
+
+    owner = relationship("UserDB", back_populates="comments")
+    post = relationship("PostDB", back_populates="comments")
