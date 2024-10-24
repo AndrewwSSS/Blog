@@ -1,11 +1,12 @@
 from datetime import timedelta
 
 import pytest
+from sqlalchemy.future import select
 
+from app.models import CommentDB
 from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import Comment
 from app.schemas.user import UserRead
-from tests.conftest import MockContentValidator
 from tests.conftest import async_session_maker
 from datetime import date
 
@@ -15,17 +16,26 @@ from tests.conftest import create_comment
 @pytest.mark.asyncio
 async def test_create_comment(test_post: UserRead, test_user: UserRead):
     async with async_session_maker() as session:
+        comment_content = "Test comment"
         repository = CommentRepository(session)
-        comment = Comment(content="Test comment", post_id=test_post.id)
-
+        new_comment = Comment(content=comment_content, post_id=test_post.id)
         created_comment = await repository.create_comment(
-            comment,
+            new_comment,
             test_user.id,
         )
 
-    assert created_comment.content == comment.content
-    assert created_comment.owner_id == test_user.id
-    assert created_comment.is_blocked is False
+        assert created_comment.content == comment_content
+        assert created_comment.owner_id == test_user.id
+        assert created_comment.is_blocked is False
+
+        query = select(CommentDB).where(CommentDB.content == comment_content)
+        result = await session.execute(query)
+        retrieved_comment = result.scalar_one_or_none()
+
+        assert retrieved_comment is not None
+        assert retrieved_comment.content == created_comment.content
+        assert retrieved_comment.owner_id == created_comment.owner_id
+        assert retrieved_comment.post_id == created_comment.post_id
 
 
 async def test_get_comments(test_comments):
