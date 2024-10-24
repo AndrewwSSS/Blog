@@ -14,19 +14,25 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
     POSTGRES_HOST: str
-    ALGORITHM: str = "HS256"
     POSTGRES_PORT: int = 5432
+
     SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
     TOKEN_TYPES: list = ["access", "refresh"]
+
     OPENAI_API_KEY: str | None = None
     GROQ_API_KEY: str | None = None
+
     CONTENT_VALIDATOR_CLASS: Type[BaseContentValidator] = GroqValidator
     REPLY_GENERATOR_CLASS: Type[BaseAIReplyGenerator] = GroqReplyGenerator
+
     REDIS_HOST: str | None = "localhost"
     REDIS_PORT: int = 6379
-    REPLY_BOT_USERNAME: str = "aboba_bot"
+
     TEST_DB_PORT: str
     TEST_DB_USER: str
     TEST_DB_PASSWORD: str
@@ -50,7 +56,6 @@ class Settings(BaseSettings):
                 f":{self.TEST_DB_PASSWORD}"
                 f"@{self.TEST_DB_HOST}"
                 f":{self.TEST_DB_PORT}/{self.TEST_DB_NAME}")
-
 
     @property
     def celery_broker_url(self) -> str:

@@ -140,7 +140,7 @@ async def create_post(
         repository = PostRepository(session)
         post = Post(content=f"{content}-{uuid.uuid4()}", title=f"{title}-{uuid.uuid4()}")
         created_post = await repository.create_post(
-            post, owner_id, MockContentValidator
+            post, owner_id
         )
         return created_post
 

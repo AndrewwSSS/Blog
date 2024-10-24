@@ -2,8 +2,7 @@ from app.repositories.post_repository import PostRepository
 from app.schemas.post import Post
 from app.schemas.post import PostRead
 from app.schemas.user import UserRead
-from app.core.config import settings
-from app.tasks.init import create_reply_for_post
+from app.tasks.init import create_reply_for_post, validate_post_content
 
 
 class PostService:
@@ -17,8 +16,8 @@ class PostService:
         post = await self.repository.create_post(
             post,
             user.id,
-            settings.CONTENT_VALIDATOR_CLASS
         )
+        validate_post_content.delay(post.id)
         if user.post_auto_reply:
             create_reply_for_post.apply_async(
                 args=(post.id,),
