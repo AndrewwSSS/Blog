@@ -1,4 +1,3 @@
-import asyncio
 import uuid
 import random
 from typing import AsyncGenerator
@@ -126,7 +125,7 @@ async def create_comment(
         repository = CommentRepository(session)
         comment = Comment(content=f"{content}-{uuid.uuid4()}", post_id=post_id)
         created_comment = await repository.create_comment(
-            comment, owner_id, MockContentValidator
+            comment, owner_id
         )
         return created_comment
 

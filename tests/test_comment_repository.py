@@ -21,7 +21,6 @@ async def test_create_comment(test_post: UserRead, test_user: UserRead):
         created_comment = await repository.create_comment(
             comment,
             test_user.id,
-            MockContentValidator
         )
 
     assert created_comment.content == comment.content
