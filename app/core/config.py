@@ -57,7 +57,6 @@ class Settings(BaseSettings):
                 f"@{self.TEST_DB_HOST}"
                 f":{self.TEST_DB_PORT}/{self.TEST_DB_NAME}")
 
-
     @property
     def celery_broker_url(self) -> str:
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/0"

@@ -1,6 +1,5 @@
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import Post
-from tests.conftest import MockContentValidator
 from tests.conftest import async_session_maker
 
 
@@ -43,6 +42,3 @@ async def test_get_post_by_id(test_post):
     assert post.owner_id == test_post.owner_id
     assert post.is_blocked == test_post.is_blocked
     assert post.content == test_post.content
-
-
-

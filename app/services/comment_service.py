@@ -1,6 +1,5 @@
 from datetime import date
 
-from app.core.config import settings
 from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import Comment
 from app.schemas.comment import CommentRead
@@ -19,7 +18,6 @@ class CommentService:
         comment_created = await self.repository.create_comment(
             comment,
             user.id,
-            settings.CONTENT_VALIDATOR_CLASS
         )
         validate_comment_content.delay(comment_created.id)
         return comment_created

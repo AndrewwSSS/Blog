@@ -1,10 +1,8 @@
-from typing import Type
 from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, Integer
 
-from app.core.validation.base_content_validator import BaseContentValidator
 from app.models import CommentDB
 from app.schemas.comment import CommentRead, Comment
 

@@ -68,7 +68,6 @@ async def _create_reply_for_post(post_id: int) -> None:
         await comment_repo.create_comment(
             comment,
             post.owner_id,
-            settings.CONTENT_VALIDATOR_CLASS,
         )
 
 
