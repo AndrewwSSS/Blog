@@ -1,3 +1,4 @@
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -47,3 +48,17 @@ class PostRepository:
         query = select(PostDB).where(PostDB.id == post_id)
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+    async def update_post(self, post_id: int, fields: dict) -> None:
+        query = (
+            update(PostDB)
+            .where(PostDB.id == post_id)
+            .values(**fields)
+            .execution_options(synchronize_session="fetch")
+        )
+
+        result = await self.session.execute(query)
+
+        await self.session.commit()
+
+        return result.rowcount > 0

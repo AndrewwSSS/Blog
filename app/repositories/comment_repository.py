@@ -1,5 +1,6 @@
 from datetime import date
 
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, Integer
 
@@ -56,8 +57,21 @@ class CommentRepository:
         result = await self.session.execute(query)
         return result.all()
 
-
     async def get_commentDb_by_id(self, id: int) -> CommentDB | None:
         query = select(CommentDB).where(CommentDB.id == id)
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+    async def update_comment(self, comment_id: int, fields: dict) -> bool:
+        query = (
+            update(CommentDB)
+            .where(CommentDB.id == comment_id)
+            .values(**fields)
+            .execution_options(synchronize_session="fetch")
+        )
+
+        result = await self.session.execute(query)
+
+        await self.session.commit()
+
+        return result.rowcount > 0
