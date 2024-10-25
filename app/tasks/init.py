@@ -8,7 +8,6 @@ from app.repositories.comment_repository import CommentRepository
 from app.repositories.post_repository import PostRepository
 from app.schemas.comment import Comment
 
-
 celery = Celery(
     "tasks",
     broker=settings.celery_broker_url,
@@ -28,22 +27,50 @@ def create_reply_for_post(post_id: int):
 def validate_post_content(
     post_id: int
 ):
-    loop = asyncio.get_event_loop()
-    if loop.is_running():
-        asyncio.ensure_future(_validate_post_content(post_id))
-    else:
-        loop.run_until_complete(_validate_post_content(post_id))
+    run_coroutine(
+        run_post_validation(
+            post_id,
+        )
+    )
 
 
 @celery.task
 def validate_comment_content(
     comment_id: int
 ):
+    run_coroutine(run_comment_validation(
+        comment_id,
+    ))
+
+
+def run_coroutine(coroutine):
     loop = asyncio.get_event_loop()
     if loop.is_running():
-        asyncio.ensure_future(_validate_comment_content(comment_id))
+        asyncio.ensure_future(coroutine)
     else:
-        loop.run_until_complete(_validate_comment_content(comment_id))
+        loop.run_until_complete(coroutine)
+
+
+async def run_post_validation(post_id: int):
+    from app.services.post_service import PostService
+
+    async with async_session() as session:
+        post_repo = PostRepository(session)
+        post_service = PostService(post_repo)
+        await post_service.validate_post_content(
+            post_id
+        )
+
+
+async def run_comment_validation(comment_id: int):
+    from app.services.comment_service import CommentService
+
+    async with async_session() as session:
+        comment_repo = CommentRepository(session)
+        comment_service = CommentService(comment_repo)
+        await comment_service.validate_comment_content(
+            comment_id
+        )
 
 
 async def _create_reply_for_post(post_id: int) -> None:
@@ -69,42 +96,3 @@ async def _create_reply_for_post(post_id: int) -> None:
             comment,
             post.owner_id,
         )
-
-
-async def _validate_post_content(
-    post_id: int,
-) -> None:
-    async with async_session() as session:
-        post_repo = PostRepository(session)
-        post = await post_repo.get_postDb_by_id(post_id)
-        if not post:
-            raise ValueError("Post not found")
-        validator = settings.CONTENT_VALIDATOR_CLASS()
-        is_validated = await validator.validate_post(
-            post.content, post.title,
-        )
-
-        if not is_validated:
-            post.is_blocked = True
-            await session.commit()
-            print(f"Post: {post.id} has been blocked")
-
-
-async def _validate_comment_content(
-    comment_id: int
-):
-    async with async_session() as session:
-        comment_repo = CommentRepository(session)
-        comment = await comment_repo.get_commentDb_by_id(
-            comment_id
-        )
-        if not comment:
-            raise ValueError("Comment not found")
-        validator = settings.CONTENT_VALIDATOR_CLASS()
-        is_validated = await validator.validate_comment(
-            comment.content,
-        )
-        if not is_validated:
-            comment.is_blocked = True
-            await session.commit()
-            print(f"Comment: {comment.id} has been blocked")

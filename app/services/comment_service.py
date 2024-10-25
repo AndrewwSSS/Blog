@@ -1,5 +1,6 @@
 from datetime import date
 
+from app.core.config import settings
 from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import Comment
 from app.schemas.comment import CommentRead
@@ -24,3 +25,20 @@ class CommentService:
 
     async def get_comments_analytics(self, date_from: date, date_to: date) -> dict:
         return await self.repository.get_comments_analytics(date_from, date_to)
+
+    async def validate_comment_content(self, comment_id) -> None:
+        comment = await self.repository.get_commentDb_by_id(
+            comment_id
+        )
+        if not comment:
+            raise ValueError("Comment not found")
+        validator = settings.CONTENT_VALIDATOR_CLASS()
+        is_validated = await validator.validate_comment(
+            comment.content,
+        )
+        if not is_validated:
+            await self.repository.update_comment(
+                comment.id,
+                {"is_blocked": True}
+            )
+            print(f"Comment: {comment.id} has been blocked")
