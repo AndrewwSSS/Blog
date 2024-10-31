@@ -57,10 +57,14 @@ class CommentRepository:
         result = await self.session.execute(query)
         return result.all()
 
-    async def get_commentDb_by_id(self, id: int) -> CommentDB | None:
+    async def get_comment_by_id(self, id: int) -> CommentRead | None:
         query = select(CommentDB).where(CommentDB.id == id)
         result = await self.session.execute(query)
-        return result.scalar_one_or_none()
+        comment_db = result.scalar_one_or_none()
+        if comment_db:
+            return CommentRead.model_validate(
+                comment_db
+            )
 
     async def update_comment(self, comment_id: int, fields: dict) -> bool:
         query = (

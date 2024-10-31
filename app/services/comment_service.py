@@ -27,7 +27,7 @@ class CommentService:
         return await self.repository.get_comments_analytics(date_from, date_to)
 
     async def validate_comment_content(self, comment_id) -> None:
-        comment = await self.repository.get_commentDb_by_id(
+        comment = await self.repository.get_comment_by_id(
             comment_id
         )
         if not comment:
