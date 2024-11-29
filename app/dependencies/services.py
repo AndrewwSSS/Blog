@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import Depends
 
 from app.dependencies.repositories import get_comment_repository
@@ -27,3 +29,8 @@ def get_comment_service(
     comment_repository: CommentRepository = Depends(get_comment_repository)
 ) -> CommentService:
     return CommentService(comment_repository)
+
+
+UserServiceDependency = Annotated[UserService, Depends(get_user_service)]
+PostServiceDependency = Annotated[PostService, Depends(get_post_service)]
+CommentServiceDependency = Annotated[CommentService, Depends(get_comment_service)]

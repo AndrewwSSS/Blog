@@ -16,7 +16,10 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str
     POSTGRES_PORT: int = 5432
 
+    ELASTICSEARCH_URL: str = "http://elasticsearch:9200"
+
     SECRET_KEY: str
+    EMAIL_TOKEN_SALT: str
     ALGORITHM: str = "HS256"
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -33,11 +36,12 @@ class Settings(BaseSettings):
     REDIS_HOST: str | None = "localhost"
     REDIS_PORT: int = 6379
 
-    TEST_DB_PORT: str
-    TEST_DB_USER: str
-    TEST_DB_PASSWORD: str
-    TEST_DB_HOST: str
-    TEST_DB_NAME: str
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str
+    SMTP_USER_PASSWORD: str
+
+    KAFKA_URL: str
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         env_file=".env",
@@ -52,14 +56,15 @@ class Settings(BaseSettings):
 
     @property
     def test_database_url(self) -> str:
-        return (f"postgresql+asyncpg://{self.TEST_DB_USER}"
-                f":{self.TEST_DB_PASSWORD}"
-                f"@{self.TEST_DB_HOST}"
-                f":{self.TEST_DB_PORT}/{self.TEST_DB_NAME}")
+        return "sqlite+aiosqlite:///./test_database.db"
 
     @property
     def celery_broker_url(self) -> str:
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/0"
+
+    @property
+    def redis_cache_url(self) -> str:
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/1"
 
 
 settings = Settings()

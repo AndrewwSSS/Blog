@@ -22,7 +22,6 @@ config.set_section_option(section, "DB_USER", settings.POSTGRES_USER)
 config.set_section_option(section, "DB_NAME", settings.POSTGRES_DB)
 config.set_section_option(section, "DB_PASS", settings.POSTGRES_PASSWORD)
 
-print(settings.POSTGRES_HOST, settings.POSTGRES_PORT, settings.POSTGRES_USER, settings.POSTGRES_DB, settings.POSTGRES_PASSWORD)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

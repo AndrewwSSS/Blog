@@ -1,10 +1,10 @@
 # Blog API
 
-This is a simple API built for managing blog posts and comments, featuring automatic moderation and responses using AI. The API supports user registration, post creation, comment moderation, and analytics.
+This is a simple API built for managing blog posts and comments, featuring automatic moderation and responses using AI. The API supports user registration, CRUD operations with post, comment moderation, and analytics.
 
 ## Features
 - **User Management**: Register new users and log in with jwt tokens authentication.
-- **Post and Comment Management**: Create posts and comments.
+- **Post and Comment Management**: Create, update, delete posts and comments.
 - **Moderation**: Automatic moderation of posts and comments.
 - **Automatic Responses**: The system provides AI-generated replies to comments with configurable delays.
 - **Analytics**: View statistics on comment creation and blocked comments.
@@ -15,7 +15,9 @@ This is a simple API built for managing blog posts and comments, featuring autom
 - **Docker**: Containerization for easy deployment and development.
 - **PostgreSQL**: A robust relational database used to store and manage users, posts, comments, and moderation logs.
 - **Celery**: A task queue for handling background tasks, such as delayed comment replies and moderation processing.
-- **Redis**: An in-memory data store used as a message broker for Celery, enabling efficient communication and task management.
+- **Redis**: An in-memory data store used as a message broker for Celery and cache storage, enabling efficient communication and task management.
+- **ElasticSearch**: NoSQL database, provides posts full text search 
+- **Kafka**: Message broker for notification service
 
 
 ## Getting Started
@@ -58,7 +60,8 @@ Test data(api keys can be expired):
    TEST_DB_NAME=test
 ```
 
-To obtain GROQ_API_KEY You can visit https://console.groq.com/keys. OPENAI_API_KEY - https://platform.openai.com/api-keys
+To obtain GROQ_API_KEY You can visit https://console.groq.com/keys.
+OPENAI_API_KEY - https://platform.openai.com/api-keys
 
 
 ### Running

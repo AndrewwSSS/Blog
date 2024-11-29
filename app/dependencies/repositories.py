@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
@@ -17,3 +19,8 @@ def get_post_repository(session: AsyncSession = Depends(get_session)) -> PostRep
 
 def get_comment_repository(session: AsyncSession = Depends(get_session)) -> CommentRepository:
     return CommentRepository(session)
+
+
+UserRepoDependency = Annotated[UserRepository, Depends(get_user_repository)]
+PostRepoDependency = Annotated[PostRepository, Depends(get_post_repository)]
+CommentRepoDependency = Annotated[CommentRepository, Depends(get_comment_repository)]
