@@ -74,9 +74,10 @@ async def create_comment(
         repository = CommentRepository(session)
         comment = CommentCreate(content=f"{content}-{uuid.uuid4()}", post_id=post_id)
         created_comment = await repository.create(
-            comment, owner_id
+            **comment.model_dump(),
+            owner_id=owner_id
         )
-        return created_comment
+    return created_comment
 
 
 async def create_post(
@@ -88,9 +89,10 @@ async def create_post(
         repository = PostRepository(session)
         post = Post(content=f"{content}-{uuid.uuid4()}", title=f"{title}-{uuid.uuid4()}")
         created_post = await repository.create(
-            post, owner_id
+            **post.model_dump(),
+            owner_id=owner_id
         )
-        return created_post
+    return created_post
 
 
 async def create_user(
@@ -100,10 +102,10 @@ async def create_user(
 ) -> UserInDB:
     async with async_session_maker() as session:
         repository = UserRepository(session)
-        user = UserRegister(
+
+        created_user = await repository.create(
             username=f"{username}{uuid.uuid4()}",
-            password=f"{password}{uuid.uuid4()}",
+            hashed_password=f"{password}{uuid.uuid4()}",
             email=f"{email}{uuid.uuid4()}@gmail.com",
         )
-        created_user = await repository.create(user)
     return created_user

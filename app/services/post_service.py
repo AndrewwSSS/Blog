@@ -33,7 +33,7 @@ class PostService:
         filter_params: PostFilterParams
     ) -> PaginatedPosts:
 
-        count_total_items = await self.repository.count_items()
+        count_total_items = await self.repository.count_records()
         paginator = PagePaginator(
             filter_params.page,
             filter_params.limit,
@@ -54,9 +54,10 @@ class PostService:
 
     async def create(self, post: Post, user: UserInDB) -> PostInDB:
         post = await self.repository.create(
-            post,
-            user.id,
+            **post.model_dump(),
+            owner_id=user.id,
         )
+
         validate_post_content.delay(post.id)
         if user.post_auto_reply:
             create_reply_for_post.apply_async(
@@ -92,8 +93,8 @@ class PostService:
             )
 
         updated = await self.repository.update_by_id(
-            post_id,
-            post.dict(exclude_none=True),
+            record_id=post_id,
+            **post.model_dump(exclude_none=True),
         )
 
         if not updated:

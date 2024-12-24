@@ -83,10 +83,9 @@ class AsyncElasticsearchClient:
         await self._client.update(
             index=index_name,
             id=document_id,
-            body={
-                "doc": updated_document
-            }
+            body=updated_document
         )
+        await self._client.indices.refresh(index=index_name)
 
     async def delete_document(self, index_name: str, document_id: int):
         await self._client.delete(index=index_name, id=document_id)

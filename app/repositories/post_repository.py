@@ -1,21 +1,21 @@
+import logging
 from datetime import datetime
-from typing import Iterable
 
 from sqlalchemy import (
-    update,
     select,
-    delete, func
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import PostDB
 from app.core.async_elasticsearch_client import AsyncElasticsearchClient
-from app.schemas.post import Post, PostInDB
+from app.repositories.AsyncDatabaseRepository import AsyncDatabaseRepository
+from app.schemas.post import PostInDB
+
+logger = logging.getLogger(__name__)
 
 
-class PostRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self.session = session
+class PostRepository(AsyncDatabaseRepository):
+    model = PostDB
+    pydantic_model = PostInDB
 
     async def get_list(
         self,
@@ -24,7 +24,7 @@ class PostRepository:
         date_from: datetime = None,
         date_to: datetime = None,
         owner_id: int = None,
-    ) -> [PostInDB]:
+    ) -> list[PostInDB]:
         query = select(PostDB)
 
         if offset:
@@ -53,64 +53,6 @@ class PostRepository:
             for post in posts
         ]
 
-    async def create(
-        self,
-        post: Post,
-        user_id: int,
-    ) -> PostInDB:
-        post_db = PostDB(
-            **post.model_dump(),
-            owner_id=user_id,
-        )
-
-        self.session.add(post_db)
-        await self.session.commit()
-        await self.session.refresh(post_db)
-
-        return PostInDB.model_validate(
-            post_db
-        )
-
-    async def get_by_id(self, post_id: int) -> PostInDB | None:
-        query = select(PostDB).where(PostDB.id == post_id)
-        result = await self.session.execute(query)
-        post_db = result.scalar_one_or_none()
-        if post_db:
-            return PostInDB.model_validate(post_db)
-
-    async def get_by_ids(self, records_ids: Iterable[int]) -> list[PostInDB]:
-        query = select(PostDB).where(PostDB.id.in_(records_ids))
-        result = await self.session.execute(query)
-        posts_list = result.scalars().all()
-        return [
-            PostInDB.model_validate(post)
-            for post in posts_list
-        ]
-
-    async def update_by_id(self, record_id: int, fields: dict) -> bool:
-        query = (
-            update(PostDB)
-            .where(PostDB.id == record_id)
-            .values(**fields)
-            .execution_options(synchronize_session="fetch")
-        )
-
-        result = await self.session.execute(query)
-        await self.session.commit()
-
-        return result.rowcount == 1
-
-    async def delete_by_id(self, post_id: int) -> bool:
-        query = (
-            delete(PostDB)
-            .where(PostDB.id == post_id)
-        )
-
-        result = await self.session.execute(query)
-        await self.session.commit()
-
-        return result.rowcount == 1
-
     async def search(self, query_string: str) -> list[PostInDB]:
         es_repo = AsyncElasticsearchClient()
         search_results = await es_repo.search_by_template(
@@ -120,6 +62,8 @@ class PostRepository:
                 "query_string": query_string,
             },
         )
+
+        logger.debug(f"Search results: {search_results}")
 
         ordered_ids = [
             int(item["_id"])
@@ -137,11 +81,3 @@ class PostRepository:
             for post_id in ordered_ids
             if post_id in id_to_post
         ]
-
-    async def count_items(self) -> int:
-        result = await self.session.execute(
-            select(func.count())
-            .select_from(PostDB)
-        )
-
-        return result.scalar()

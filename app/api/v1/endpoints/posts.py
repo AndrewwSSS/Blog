@@ -102,13 +102,12 @@ async def delete_post(
     return await service.delete_by_id(post_id, current_user)
 
 
-@router.get("/{post_id:int}/comments/", response_model=PaginatedComments)
+@router.get("/{post_id}/comments/", response_model=PaginatedComments)
 async def get_posts_comment(
     post_id: int,
     current_user: CurrentUserDependency,
-    service: CommentServiceDependency
+    service: CommentServiceDependency,
+    filter_params: Annotated[CommentFilterParams, Query()]
 ):
-    filter_params = CommentFilterParams(
-        post_id=post_id
-    )
+    filter_params.post_id = post_id
     return await service.get_list(filter_params)

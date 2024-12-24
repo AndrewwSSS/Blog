@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.auth.utils import create_access_token
 from app.core.auth.utils import create_refresh_token
 from app.core.auth.utils import verify_token
-from app.core.security import verify_password
+from app.core.security import verify_password, get_password_hash
 from app.repositories.user_repository import UserRepository
 from app.schemas.jwt import LoginResponse, TokenRefreshResponse
 from app.schemas.user import UserRegister, UserLoginRequest
@@ -25,9 +25,13 @@ class UserService:
     def __init__(self, user_repository: UserRepository):
         self.repository = user_repository
 
-    async def create_user(self, user: UserRegister) -> UserInDB:
+    async def create(self, user: UserRegister) -> UserInDB:
         try:
-            created_user = await self.repository.create(user)
+            created_user: UserInDB = await self.repository.create(
+                username=user.username,
+                hashed_password=get_password_hash(user.password),
+                email=user.email
+            )
         except IntegrityError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -52,7 +56,7 @@ class UserService:
     async def read_users(self) -> [UserRead]:
         return await self.repository.get_list()
 
-    async def get_user_by_id(self, user_id: int) -> UserInDB:
+    async def get_by_id(self, user_id: int) -> UserInDB:
         user = await self.repository.get_by_id(user_id)
         if not user:
             raise HTTPException(
@@ -61,7 +65,7 @@ class UserService:
             )
         return user
 
-    async def authenticate_user(self, user: UserLoginRequest) -> UserInDB:
+    async def authenticate(self, user: UserLoginRequest) -> UserInDB:
         user_db = await self.repository.get_by_username(
             user.username
         )
@@ -84,8 +88,8 @@ class UserService:
 
         return user_db
 
-    async def login_user(self, user: UserLoginRequest) -> LoginResponse:
-        user = await self.authenticate_user(user)
+    async def login(self, user: UserLoginRequest) -> LoginResponse:
+        user = await self.authenticate(user)
 
         access_token = create_access_token(
             data={"user_id": user.id},
@@ -114,7 +118,7 @@ class UserService:
                 detail="Invalid token type",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        user = await self.get_user_by_id(payload["user_id"])
+        user = await self.get_by_id(payload["user_id"])
 
         new_access_token = create_access_token(
             data={"user_id": user.id},
@@ -124,10 +128,16 @@ class UserService:
         )
 
     async def update_by_id(self, user_id: int, user: UserUpdate) -> UserInDB:
-        return await self.repository.update_by_id(
-            user_id=user_id,
-            fields=user.dict()
+        updated = await self.repository.update_by_id(
+            record_id=user_id,
+            **user.model_dump(exclude_unset=True)
         )
+        if not updated:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        return await self.repository.get_by_id(user_id)
 
     async def verify_user(
         self,
@@ -158,8 +168,8 @@ class UserService:
             )
 
         await self.repository.update_by_id(
-            user_id=user.id,
-            fields={"is_active": True}
+            record_id=user.id,
+            is_active=True
         )
         await AsyncKafkaProducer.publish(
             topic="new-active-user",

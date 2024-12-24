@@ -19,8 +19,8 @@ async def test_create_post(
     post = Post(content="Test content", title="Test title")
 
     created_post = await repository.create(
-        post,
-        test_user.id,
+        **post.model_dump(),
+        owner_id=test_user.id,
     )
 
     assert created_post.content == post.content
@@ -130,16 +130,14 @@ async def test_update_by_id(
     repository = PostRepository(session)
     updated = await repository.update_by_id(
         record_id=test_post.id,
-        fields={
-            "content": new_content_value,
-            "title": new_title_value
-        }
+        content=new_content_value,
+        title=new_title_value
     )
 
     updated_post = await repository.get_by_id(test_post.id)
 
-    assert updated
-    assert updated_post
+    assert updated is True
+    assert updated_post is not None
     assert updated_post.content == new_content_value
     assert updated_post.title == new_title_value
 

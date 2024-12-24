@@ -30,8 +30,8 @@ async def test_create_comment(
     repository = CommentRepository(session)
     new_comment = CommentCreate(content=comment_content, post_id=test_post.id)
     created_comment = await repository.create(
-        new_comment,
-        test_user.id,
+        **new_comment.model_dump(),
+        owner_id=test_user.id,
     )
 
     assert created_comment.content == comment_content
@@ -162,10 +162,8 @@ async def test_update_by_id(
     comment_repo = CommentRepository(session)
     updated = await comment_repo.update_by_id(
         record_id=test_comment.id,
-        fields={
-            "content": new_content_value,
-            "is_blocked": new_is_blocked_value
-        }
+        content=new_content_value,
+        is_blocked=new_is_blocked_value
     )
     result_comment = await comment_repo.get_by_id(
         test_comment.id

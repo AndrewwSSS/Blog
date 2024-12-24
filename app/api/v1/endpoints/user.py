@@ -22,7 +22,7 @@ async def create_user_endpoint(
     user: UserRegister,
     service: UserServiceDependency,
 ):
-    return await service.create_user(user)
+    return await service.create(user)
 
 
 @router.post("/token", response_model=LoginResponse)
@@ -30,7 +30,7 @@ async def login(
     user: UserLoginRequest,
     service: UserServiceDependency,
 ):
-    return await service.login_user(user)
+    return await service.login(user)
 
 
 @router.post("/token/refresh", response_model=TokenRefreshResponse)
@@ -57,7 +57,7 @@ async def read_users_me(
     current_user: CurrentUserDependency,
     service: UserServiceDependency
 ):
-    return await service.get_user_by_id(current_user.id)
+    return await service.get_by_id(current_user.id)
 
 
 @router.get("/verification/{token}")

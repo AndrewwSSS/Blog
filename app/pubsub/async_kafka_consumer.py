@@ -64,8 +64,8 @@ class AsyncKafkaConsumer:
 
             if is_sent:
                 await user_repo.update_by_id(
-                    user.id,
-                    {"welcome_email_sent": True}
+                    record_id=user.id,
+                    welcome_email_sent=True
                 )
             else:
                 logger.error(f"Failed to send welcome email to user {user.email}")
@@ -80,7 +80,7 @@ class AsyncKafkaConsumer:
         async with async_session() as session:
             user_repo = UserRepository(session)
             user = await user_repo.get_by_id(
-                user_id=user_id,
+                record_id=user_id,
             )
             if user.is_active:
                 logger.info(f"User {user.username} has already registered")

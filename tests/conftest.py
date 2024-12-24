@@ -58,3 +58,6 @@ async def prepare_database():
     yield
     async with engine_test.begin() as conn:
         await conn.run_sync(BaseModel.metadata.drop_all)
+
+
+client = TestClient(app)

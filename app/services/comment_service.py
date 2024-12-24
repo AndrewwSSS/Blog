@@ -30,7 +30,7 @@ class CommentService:
         self,
         filter_params: CommentFilterParams,
     ) -> PaginatedComments:
-        count_records = await self.repository.count_items()
+        count_records = await self.repository.count_records()
         paginator = PagePaginator(
             page=filter_params.page,
             limit=filter_params.limit,
@@ -38,7 +38,7 @@ class CommentService:
         )
         comments = await self.repository.get_list(
             offset=paginator.offset,
-            **filter_params.dict(exclude_unset=True, exclude={"page"}),
+            **filter_params.model_dump(exclude_unset=True, exclude={"page"}),
         )
 
         return PaginatedComments(
@@ -48,17 +48,18 @@ class CommentService:
             limit=paginator.limit,
         )
 
-    async def create(self, comment: CommentCreate, user: UserInDB) -> CommentRead:
+    async def create(self, comment: CommentCreate, user: UserInDB) -> CommentInDB:
         try:
             comment_created = await self.repository.create(
-                comment,
-                user.id,
+                **comment.model_dump(exclude_none=True),
+                owner_id=user.id,
             )
         except IntegrityError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Post with id {comment.post_id} not found",
             )
+
         validate_comment_content.delay(comment_created.id)
         return comment_created
 
@@ -108,8 +109,8 @@ class CommentService:
             )
 
         updated = await self.repository.update_by_id(
-            record_id,
-            comment_update.dict(exclude_unset=True),
+            record_id=record_id,
+            **comment_update.model_dump(exclude_unset=True),
         )
 
         if not updated:
