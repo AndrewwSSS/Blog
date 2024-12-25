@@ -1,0 +1,35 @@
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "partial_match_analyzer": {
+          "tokenizer": "partial_match_tokenizer",
+          "filter": ["lowercase"]
+        }
+      },
+      "tokenizer": {
+        "partial_match_tokenizer": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 20,
+          "token_chars": ["letter", "digit"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "title": {
+        "type": "text",
+        "analyzer": "partial_match_analyzer",
+        "search_analyzer": "standard"
+      },
+      "content": {
+        "type": "text",
+        "analyzer": "partial_match_analyzer",
+        "search_analyzer": "standard"
+      },
+      "date_posted": {"type": "date"}
+    }
+  }
+}
