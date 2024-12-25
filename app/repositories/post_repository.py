@@ -70,6 +70,9 @@ class PostRepository(AsyncDatabaseRepository):
             for item in search_results["hits"]["hits"]
         ]
 
+        if not ordered_ids:
+            return []
+
         posts = await self.get_by_ids(
            ordered_ids
         )
