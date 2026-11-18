@@ -93,8 +93,10 @@ class EmailService:
             <html>
             <body>
                 <h1>Welcome, {html.escape(self.user.username)}!</h1>
-                <p>We're thrilled to have you join our Blog Service. Here's to creating and sharing amazing content together!</p>
-                <p>If you have any questions or need assistance, feel free to reach out to our support team.</p>
+                <p>We're thrilled to have you join our Blog Service.
+                Here's to creating and sharing amazing content together!</p>
+                <p>If you have any questions or need assistance,
+                feel free to reach out to our support team.</p>
                 <br>
                 <p>Happy blogging,</p>
                 <p>The Blog Service Team</p>

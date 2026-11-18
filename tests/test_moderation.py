@@ -13,14 +13,10 @@ from app.schemas.user import UserInDB
 from app.services import comment_service, post_service
 from app.services.comment_service import CommentService
 from app.services.post_service import PostService
-from tests.conftest import async_session_maker
 from tests.fixtures import (
+    async_session_maker,
     create_comment,
     create_post,
-    session,
-    test_comment,
-    test_post,
-    test_user,
 )
 
 

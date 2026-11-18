@@ -10,14 +10,7 @@ from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import CommentCreate,CommentInDB
 from app.schemas.post import PostInDB
 from app.schemas.user import UserRead
-from tests.fixtures import (
-    create_comment,
-    test_comment,
-    test_user,
-    session,
-    test_comments,
-    test_post
-)
+from tests.fixtures import create_comment
 
 
 @pytest.mark.asyncio
@@ -74,7 +67,7 @@ async def test_get_list_with_offset(
     assert isinstance(result_comments, list)
     assert len(test_comments) - len(result_comments) == 1
 
-    for ind, comment in enumerate(test_comments[1::]):
+    for comment in test_comments[1:]:
         assert comment in result_comments
 
 

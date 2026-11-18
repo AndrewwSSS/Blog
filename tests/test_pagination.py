@@ -15,9 +15,6 @@ from tests.fixtures import (
     create_comment,
     create_post,
     create_user,
-    session,
-    test_post,
-    test_user,
 )
 
 

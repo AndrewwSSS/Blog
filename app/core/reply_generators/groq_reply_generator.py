@@ -39,4 +39,6 @@ class GroqReplyGenerator(BaseAIReplyGenerator):
             response_data = response.json()
             return response_data["choices"][0]["message"]["content"].strip()
         else:
-            raise Exception(f"Groq API returned an error: {response.status_code=}, {response.text=}")
+            raise Exception(
+                f"Groq API returned an error: {response.status_code=}, {response.text=}"
+            )

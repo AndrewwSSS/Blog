@@ -36,11 +36,11 @@ class UserService:
                 hashed_password=get_password_hash(user.password),
                 email=user.email
             )
-        except IntegrityError:
+        except IntegrityError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User with this username or email already exists."
-            )
+            ) from e
         verification_token = generate_email_verification_token(
             created_user.email,
         )
@@ -109,12 +109,12 @@ class UserService:
     async def refresh_access_token(self, refresh_token: str) -> TokenRefreshResponse:
         try:
             payload = verify_token(refresh_token)
-        except InvalidTokenError:
+        except InvalidTokenError as e:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token",
                 headers={"WWW-Authenticate": "Bearer"},
-            )
+            ) from e
         if payload["token_type"] != "refresh":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

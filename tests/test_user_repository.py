@@ -3,11 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserRegister, UserUpdate, UserInDB
-from tests.fixtures import (
-    session,
-    test_users,
-    test_user
-)
 
 
 @pytest.mark.asyncio
@@ -44,7 +39,7 @@ async def test_get_all(
     assert isinstance(users, list)
     assert len(users) == len(test_users)
 
-    for ind, user in enumerate(users):
+    for user in users:
         assert user in test_users
 
 

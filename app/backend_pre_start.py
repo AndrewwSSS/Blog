@@ -71,9 +71,9 @@ async def create_indexes(repository: AsyncElasticsearchClient) -> None:
         index_name="posts",
         body=index_body
     ):
-        logger.info(f"Index 'posts' created.")
+        logger.info("Index 'posts' created.")
     else:
-        logger.info(f"Index 'posts' already exists.")
+        logger.info("Index 'posts' already exists.")
 
 
 async def create_search_templates(repository: AsyncElasticsearchClient) -> None:

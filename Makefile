@@ -2,7 +2,7 @@ COMPOSE ?= docker compose
 API     ?= api
 
 .DEFAULT_GOAL := help
-.PHONY: help env install build up down restart ps logs shell test test-local migrate migration clean
+.PHONY: help env install build up down restart ps logs shell test test-local lint format migrate migration clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -38,6 +38,12 @@ test: ## Run tests in the API container (services must be up)
 
 test-local: ## Run tests locally with Poetry
 	poetry run pytest tests/
+
+lint: ## Check code with ruff
+	poetry run ruff check .
+
+format: ## Format code with ruff
+	poetry run ruff format .
 
 migrate: ## Apply database migrations
 	$(COMPOSE) exec $(API) alembic upgrade head

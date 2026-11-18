@@ -54,11 +54,11 @@ class CommentService:
                 **comment.model_dump(exclude_none=True),
                 owner_id=user.id,
             )
-        except IntegrityError:
+        except IntegrityError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Post with id {comment.post_id} not found",
-            )
+            ) from e
 
         validate_comment_content.delay(comment_created.id)
         return comment_created
@@ -103,7 +103,7 @@ class CommentService:
         if comment_to_update.owner_id != current_user.id and not current_user.is_admin:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Permission denied"
+                detail="Permission denied"
             )
 
         updated = await self.repository.update_by_id(
@@ -129,7 +129,7 @@ class CommentService:
         if comment_to_delete.owner_id != current_user.id and not current_user.is_admin:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Permission denied"
+                detail="Permission denied"
             )
 
         deleted = await self.repository.delete_by_id(

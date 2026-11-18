@@ -1,68 +1,37 @@
-import random
 import uuid
-from typing import AsyncGenerator
 
-import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
+from app.core.config import settings
 from app.repositories.comment_repository import CommentRepository
 from app.repositories.post_repository import PostRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.comment import CommentInDB, CommentCreate
-from app.schemas.post import Post, PostInDB, PostRead
-from app.schemas.user import UserRegister, UserInDB
-from tests.conftest import async_session_maker, app
+from app.schemas.comment import CommentCreate, CommentInDB
+from app.schemas.post import Post, PostInDB
+from app.schemas.user import UserInDB
+
+engine_test = create_async_engine(
+    settings.test_database_url,
+    poolclass=NullPool,
+    connect_args={"check_same_thread": False},
+)
 
 
-@pytest.fixture(scope="session")
-async def ac() -> AsyncGenerator[AsyncClient, None]:
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        yield ac
+@event.listens_for(engine_test.sync_engine, "connect")
+def enable_sqlite_foreign_keys(dbapi_connection, connection_record) -> None:
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 
-@pytest.fixture(scope="function")
-async def session() -> AsyncSession:
-    async with async_session_maker() as session:
-        yield session
-
-
-@pytest.fixture(scope="function")
-async def test_user() -> UserInDB:
-    return await create_user()
-
-
-@pytest.fixture(scope="function")
-async def test_post(test_user) -> PostInDB:
-    return await create_post(
-        test_user.id
-    )
-
-
-@pytest.fixture(scope="function")
-async def test_comment(test_post) -> CommentInDB:
-    return await create_comment(
-        test_post.owner_id,
-        test_post.id,
-    )
-
-
-@pytest.fixture(scope="function")
-async def test_posts(test_user) -> [PostRead]:
-    count = random.randint(3, 5)
-    return [await create_post(test_user.id) for _ in range(count)]
-
-
-@pytest.fixture(scope="function")
-async def test_comments(test_post, test_user) -> [PostRead]:
-    count = random.randint(3, 5)
-    return [await create_comment(test_user.id, test_post.id) for _ in range(count)]
-
-
-@pytest.fixture(scope="function")
-async def test_users() -> [PostRead]:
-    count = random.randint(3, 5)
-    return [await create_user() for _ in range(count)]
+async_session_maker = sessionmaker(
+    engine_test,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
 
 
 async def create_comment(

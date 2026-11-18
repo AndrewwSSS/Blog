@@ -1,55 +1,26 @@
-from typing import AsyncGenerator
 import logging
+import random
+from typing import AsyncGenerator
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import event
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    create_async_engine
-)
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
 from app.core import cache
-from app.core.config import settings
-from app.core.validation.base_content_validator import BaseContentValidator
-from app.db.session import get_session as get_async_session
 from app.db.base_model import BaseModel
-
-
-DATABASE_URL_TEST = settings.test_database_url
-
+from app.db.session import get_session as get_async_session
+from app.schemas.comment import CommentInDB
+from app.schemas.post import PostInDB
+from app.schemas.user import UserInDB
+from tests.fixtures import (
+    async_session_maker,
+    create_comment,
+    create_post,
+    create_user,
+    engine_test,
+)
 
 logging.disable(logging.INFO)
-
-engine_test = create_async_engine(
-    DATABASE_URL_TEST,
-    poolclass=NullPool,
-    connect_args={"check_same_thread": False},
-)
-
-@event.listens_for(engine_test.sync_engine, "connect")
-def enable_sqlite_foreign_keys(dbapi_connection, connection_record) -> None:
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
-
-
-async_session_maker = sessionmaker(
-    engine_test,
-    class_=AsyncSession,
-    expire_on_commit=False
-)
-
-
-class MockContentValidator(BaseContentValidator):
-    async def validate_post(self, content: str, title: str) -> bool:
-        return True
-
-    async def validate_comment(self, content: str) -> bool:
-        return True
 
 
 class FakeRedis:
@@ -83,7 +54,7 @@ async def override_get_async_session() -> AsyncGenerator[AsyncSession, None]:
 app.dependency_overrides[get_async_session] = override_get_async_session
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 async def prepare_database():
     async with engine_test.begin() as conn:
         await conn.run_sync(BaseModel.metadata.create_all)
@@ -92,4 +63,40 @@ async def prepare_database():
         await conn.run_sync(BaseModel.metadata.drop_all)
 
 
-client = TestClient(app)
+@pytest.fixture
+async def session() -> AsyncGenerator[AsyncSession, None]:
+    async with async_session_maker() as session:
+        yield session
+
+
+@pytest.fixture
+async def test_user() -> UserInDB:
+    return await create_user()
+
+
+@pytest.fixture
+async def test_users() -> list[UserInDB]:
+    return [await create_user() for _ in range(random.randint(3, 5))]
+
+
+@pytest.fixture
+async def test_post(test_user) -> PostInDB:
+    return await create_post(test_user.id)
+
+
+@pytest.fixture
+async def test_posts(test_user) -> list[PostInDB]:
+    return [await create_post(test_user.id) for _ in range(random.randint(3, 5))]
+
+
+@pytest.fixture
+async def test_comment(test_post) -> CommentInDB:
+    return await create_comment(test_post.owner_id, test_post.id)
+
+
+@pytest.fixture
+async def test_comments(test_post, test_user) -> list[CommentInDB]:
+    return [
+        await create_comment(test_user.id, test_post.id)
+        for _ in range(random.randint(3, 5))
+    ]

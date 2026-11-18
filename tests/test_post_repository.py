@@ -3,12 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import Post, PostInDB
 from app.schemas.user import UserInDB
-from tests.fixtures import (
-    test_user,
-    session,
-    test_posts,
-    test_post
-)
 
 
 async def test_create_post(
@@ -39,7 +33,7 @@ async def test_get_list_without_params(
     assert isinstance(posts, list)
     assert len(posts) == len(test_posts)
 
-    for ind, post in enumerate(posts):
+    for post in posts:
         assert post in test_posts
 
 

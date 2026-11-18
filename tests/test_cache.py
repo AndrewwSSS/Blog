@@ -1,4 +1,3 @@
-import pytest
 from redis.exceptions import ConnectionError as RedisConnectionError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +8,6 @@ from app.core.validation.base_content_validator import BaseContentValidator
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import PaginatedPosts, PostFilterParams, PostInDB
 from app.services.post_service import PostService
-from tests.fixtures import session, test_post, test_user
 
 
 class CountingPostService:

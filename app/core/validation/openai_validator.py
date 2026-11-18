@@ -9,7 +9,9 @@ class OpenContentValidator(BaseContentValidator):
     VALIDATE_POST_PROMT_TEMPLATE = '''
         Title: "{title}"
         Content: "{content}"
-        Task: Based on the content of the post, determine if it contains any offensive language or profanity. Respond only with a clear 'yes' or 'no'.
+        Task: Based on the content of the post, determine if it contains
+        any offensive language or profanity.
+        Respond only with a clear 'yes' or 'no'.
     '''
 
     def _get_content_by_template(self, content: str, title: str) -> str:
@@ -44,7 +46,9 @@ class OpenContentValidator(BaseContentValidator):
             answer = response_data["choices"][0]["message"]["content"].strip().lower()
             return answer == "no"
         else:
-            raise Exception(f"OpenAI API returned an error: {response.status_code}, {response.text}")
+            raise Exception(
+                f"OpenAI API returned an error: {response.status_code}, {response.text}"
+            )
 
     async def validate_comment(self, content: str) -> bool:
         return await self.validate_post(content, "no title provided")

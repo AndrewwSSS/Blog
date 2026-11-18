@@ -148,9 +148,9 @@ class PostService:
     async def search(self, query: str) -> list[PostInDB]:
         try:
             return await self.repository.search(query)
-        except (ApiError, TransportError):
+        except (ApiError, TransportError) as e:
             logger.exception("Elasticsearch search failed")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Search is temporarily unavailable",
-            )
+            ) from e

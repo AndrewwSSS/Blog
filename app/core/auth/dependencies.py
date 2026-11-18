@@ -40,12 +40,12 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return current_user
-    except jwt.InvalidTokenError:
+    except jwt.InvalidTokenError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from e
 
 
 CurrentUserDependency = Annotated[UserInDB, Depends(get_current_user)]

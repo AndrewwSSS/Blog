@@ -11,8 +11,10 @@ from app.pubsub.async_kafka_producer import AsyncKafkaProducer
 from app.pubsub.services import mail_service
 from app.schemas.user import UserInDB
 from app.services.post_service import PostService
-from tests.conftest import async_session_maker
-from tests.fixtures import create_user, test_user
+from tests.fixtures import (
+    async_session_maker,
+    create_user,
+)
 
 
 def kafka_message(topic: str, payload: dict, offset: int = 0) -> SimpleNamespace:

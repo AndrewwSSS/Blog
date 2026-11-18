@@ -10,12 +10,7 @@ from app.schemas.post import PostInDB
 from app.schemas.user import UserInDB
 from app.services import comment_service
 from app.services.comment_service import CommentService
-from tests.fixtures import (
-    create_comment,
-    session,
-    test_post,
-    test_user,
-)
+from tests.fixtures import create_comment
 
 
 async def test_deleting_post_deletes_its_comments(
