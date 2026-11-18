@@ -76,18 +76,16 @@ class CommentService:
         is_validated = await validator.validate_comment(
             comment.content,
         )
-        if not is_validated:
-            await self.repository.update_by_id(
-                comment.id,
-                {"is_blocked": True}
-            )
-            print(f"Comment: {comment.id} has been blocked")
+        should_block = not is_validated
+        if comment.is_blocked != should_block:
+            await self.repository.update_by_id(comment.id, is_blocked=should_block)
+            logger.info(f"Comment {comment.id} is_blocked set to {should_block}")
 
-    async def get_by_id(self, record_id) -> CommentInDB:
+    async def get_by_id(self, record_id: int, include_blocked: bool = False) -> CommentInDB:
         comment = await self.repository.get_by_id(
             record_id
         )
-        if not comment:
+        if not comment or (comment.is_blocked and not include_blocked):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Comment with id {record_id} not found"
@@ -100,7 +98,7 @@ class CommentService:
         current_user: UserInDB,
         comment_update: CommentUpdate
     ) -> CommentInDB:
-        comment_to_update = await self.get_by_id(record_id)
+        comment_to_update = await self.get_by_id(record_id, include_blocked=True)
 
         if comment_to_update.owner_id != current_user.id and not current_user.is_admin:
             raise HTTPException(
@@ -118,14 +116,15 @@ class CommentService:
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        return await self.get_by_id(record_id)
+        validate_comment_content.delay(record_id)
+        return await self.get_by_id(record_id, include_blocked=True)
 
     async def delete_by_id(
         self,
         record_id: int,
         current_user: UserInDB,
     ) -> None:
-        comment_to_delete = await self.get_by_id(record_id)
+        comment_to_delete = await self.get_by_id(record_id, include_blocked=True)
 
         if comment_to_delete.owner_id != current_user.id and not current_user.is_admin:
             raise HTTPException(

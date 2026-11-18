@@ -75,7 +75,7 @@ async def run_update_post_document(post_id: int):
         )
         if not post:
             logger.error(
-                "Post with if {post_id} no found"
+                f"Post with id {post_id} not found"
             )
             return
         es_repo = AsyncElasticsearchClient()
@@ -144,7 +144,7 @@ async def _create_reply_for_post(post_id: int) -> None:
         if not post:
             raise ValueError("Post not found")
         if post.is_blocked:
-            print("Post blocked, reply generating has been canceled")
+            logger.info(f"Post {post_id} is blocked, reply canceled")
             return
         reply_generator = settings.REPLY_GENERATOR_CLASS()
         reply_content = await reply_generator.generate_post_reply(
@@ -157,6 +157,6 @@ async def _create_reply_for_post(post_id: int) -> None:
             post_id=post_id,
         )
         await comment_repo.create(
-            comment,
-            post.owner_id,
+            **comment.model_dump(),
+            owner_id=post.owner_id,
         )

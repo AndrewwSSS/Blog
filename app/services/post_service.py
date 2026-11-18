@@ -68,9 +68,9 @@ class PostService:
 
         return post
 
-    async def get_by_id(self, post_id: int) -> PostInDB:
+    async def get_by_id(self, post_id: int, include_blocked: bool = False) -> PostInDB:
         post = await self.repository.get_by_id(post_id)
-        if not post:
+        if not post or (post.is_blocked and not include_blocked):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Post with id {post_id} not found"
@@ -84,7 +84,7 @@ class PostService:
         current_user: UserInDB
     ) -> PostInDB:
 
-        post_to_update = await self.get_by_id(post_id)
+        post_to_update = await self.get_by_id(post_id, include_blocked=True)
 
         if current_user.id != post_to_update.owner_id:
             raise HTTPException(
@@ -103,6 +103,7 @@ class PostService:
                 detail=f"Post with id {post_id} not found"
             )
 
+        validate_post_content.delay(post_id)
         update_post_document.delay(post_id)
         return await self.repository.get_by_id(post_id)
 
@@ -111,7 +112,7 @@ class PostService:
         post_id: int,
         user: UserInDB
     ) -> None:
-        post_to_delete = await self.get_by_id(post_id)
+        post_to_delete = await self.get_by_id(post_id, include_blocked=True)
 
         if user.id != post_to_delete.owner_id:
             raise HTTPException(
@@ -132,11 +133,10 @@ class PostService:
             post.content, post.title,
         )
 
-        if not is_validated:
-            await self.repository.update_by_id(
-                post_id, {"is_blocked": True}
-            )
-            logger.info(f"Post: {post.id} has been blocked")
+        should_block = not is_validated
+        if post.is_blocked != should_block:
+            await self.repository.update_by_id(post_id, is_blocked=should_block)
+            logger.info(f"Post {post.id} is_blocked set to {should_block}")
 
     async def search(self, query: str) -> [PostRead]:
         return await self.repository.search(query)

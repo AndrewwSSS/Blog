@@ -20,7 +20,7 @@ class CommentRepository(AsyncDatabaseRepository):
         owner_id: int = None,
         post_id: int = None,
     ) -> [CommentInDB]:
-        query = select(CommentDB)
+        query = select(CommentDB).where(CommentDB.is_blocked.is_(False))
 
         if offset:
             query = query.offset(offset)

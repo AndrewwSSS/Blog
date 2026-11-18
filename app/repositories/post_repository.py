@@ -25,7 +25,7 @@ class PostRepository(AsyncDatabaseRepository):
         date_to: datetime = None,
         owner_id: int = None,
     ) -> list[PostInDB]:
-        query = select(PostDB)
+        query = select(PostDB).where(PostDB.is_blocked.is_(False))
 
         if offset:
             query = query.offset(offset)
@@ -77,7 +77,7 @@ class PostRepository(AsyncDatabaseRepository):
            ordered_ids
         )
 
-        id_to_post = {post.id: post for post in posts}
+        id_to_post = {post.id: post for post in posts if not post.is_blocked}
 
         return [
             PostInDB.model_validate(id_to_post[post_id])
