@@ -17,7 +17,6 @@ from app.repositories.user_repository import UserRepository
 from app.schemas.jwt import LoginResponse, TokenRefreshResponse
 from app.schemas.user import UserRegister, UserLoginRequest
 from app.schemas.user import UserInDB
-from app.schemas.user import UserRead
 from app.schemas.user import UserUpdate
 from app.pubsub.async_kafka_producer import AsyncKafkaProducer
 from app.core.security import (
@@ -58,9 +57,6 @@ class UserService:
             payload,
         )
         return created_user
-
-    async def read_users(self) -> [UserRead]:
-        return await self.repository.get_list()
 
     async def get_by_id(self, user_id: int) -> UserInDB:
         user = await self.repository.get_by_id(user_id)

@@ -1,10 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime, date
-
-
-class CommentsAnalyticsRequest(BaseModel):
-    date_from: datetime
-    date_to: datetime
+from datetime import date
 
 
 class CommentAnalytic(BaseModel):

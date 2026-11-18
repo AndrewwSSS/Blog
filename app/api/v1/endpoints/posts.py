@@ -15,7 +15,7 @@ from app.core.cache import (
     set_cached,
 )
 from app.dependencies.services import PostServiceDependency, CommentServiceDependency
-from app.schemas.comment import CommentRead, PaginatedComments, CommentFilterParams
+from app.schemas.comment import PaginatedComments, CommentFilterParams
 from app.schemas.post import Post, PostUpdate, PaginatedPosts, PostFilterParams
 from app.schemas.post import PostRead
 

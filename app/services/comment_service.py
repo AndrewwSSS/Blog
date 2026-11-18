@@ -14,7 +14,6 @@ from app.schemas.comment import (
     CommentUpdate,
     CommentFilterParams, PaginatedComments
 )
-from app.schemas.comment import CommentRead
 from app.schemas.user import UserInDB
 from app.celery.tasks import validate_comment_content
 

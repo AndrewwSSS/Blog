@@ -15,7 +15,6 @@ celery = Celery(
     "tasks",
     broker=settings.celery_broker_url,
 )
-celery.conf["task_always_eager"] = False
 
 logger = logging.getLogger(__file__)
 

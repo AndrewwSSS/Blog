@@ -83,22 +83,11 @@ async def create_search_templates(repository: AsyncElasticsearchClient) -> None:
         search_template_body = f.read()
 
     template_id = "full-text-search"
-
-    if await repository.get_script(template_id):
-        response = await repository.create_or_update_script(
-            script_id=template_id,
-            body=search_template_body
-        )
-        logger.info(f"Search template updated successfully. "
-                    f"Response: {response}")
-        return
-
     response = await repository.create_or_update_script(
         script_id=template_id,
         body=search_template_body
     )
-    logger.info(f"Search template '{template_id}' created. "
-                f"Response: {response}")
+    logger.info(f"Search template '{template_id}' saved. Response: {response}")
 
 
 @retry(

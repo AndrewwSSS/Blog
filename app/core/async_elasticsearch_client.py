@@ -1,7 +1,6 @@
 import logging
 
 from elasticsearch import AsyncElasticsearch
-from elasticsearch.exceptions import NotFoundError
 
 from app.core.config import settings
 
@@ -29,12 +28,6 @@ class AsyncElasticsearchClient:
             await self._client.indices.create(index=index_name, body=body)
             return True
         return False
-
-    async def delete_index(self, index_name: str) -> bool:
-        raise NotImplemented
-
-    async def search(self, index_name: str, query: dict) -> dict:
-        return await self._client.search(index=index_name, query=query)
 
     async def search_by_template(
         self,
@@ -80,14 +73,6 @@ class AsyncElasticsearchClient:
 
     async def is_ready(self) -> bool:
         return await self._client.ping()
-
-    async def get_script(self, script_id: str | int) -> None | object:
-        try:
-            return await self._client.get_script(
-                id=script_id
-            )
-        except NotFoundError:
-            ...
 
     async def create_or_update_script(self, script_id: str | int, body: str) -> object:
         return await self._client.put_script(
