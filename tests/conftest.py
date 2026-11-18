@@ -12,6 +12,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.main import app
+from app.core import cache
 from app.core.config import settings
 from app.core.validation.base_content_validator import BaseContentValidator
 from app.db.session import get_session as get_async_session
@@ -49,6 +50,29 @@ class MockContentValidator(BaseContentValidator):
 
     async def validate_comment(self, content: str) -> bool:
         return True
+
+
+class FakeRedis:
+    def __init__(self) -> None:
+        self.data: dict[str, bytes] = {}
+
+    async def get(self, key: str) -> bytes | None:
+        return self.data.get(key)
+
+    async def set(self, key: str, value: str | bytes, ex: int | None = None) -> None:
+        self.data[key] = value.encode() if isinstance(value, str) else value
+
+    async def incr(self, key: str) -> int:
+        value = int(self.data.get(key, b"0")) + 1
+        self.data[key] = str(value).encode()
+        return value
+
+
+@pytest.fixture(autouse=True)
+def fake_redis(monkeypatch) -> FakeRedis:
+    redis = FakeRedis()
+    monkeypatch.setattr(cache, "redis", redis)
+    return redis
 
 
 async def override_get_async_session() -> AsyncGenerator[AsyncSession, None]:

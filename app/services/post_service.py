@@ -3,6 +3,7 @@ import logging
 from fastapi import HTTPException
 from starlette import status
 
+from app.core.cache import invalidate_posts_cache
 from app.core.config import settings
 from app.core.utils import PagePaginator
 from app.repositories.post_repository import PostRepository
@@ -58,6 +59,7 @@ class PostService:
             **post.model_dump(),
             owner_id=user.id,
         )
+        await invalidate_posts_cache()
 
         validate_post_content.delay(post.id)
         if user.post_auto_reply:
@@ -104,6 +106,7 @@ class PostService:
                 detail=f"Post with id {post_id} not found"
             )
 
+        await invalidate_posts_cache()
         validate_post_content.delay(post_id)
         update_post_document.delay(post_id)
         return await self.repository.get_by_id(post_id)
@@ -122,6 +125,7 @@ class PostService:
             )
 
         await self.repository.delete_by_id(post_id)
+        await invalidate_posts_cache()
 
         delete_post_document.delay(post_id)
 
@@ -137,6 +141,7 @@ class PostService:
         should_block = not is_validated
         if post.is_blocked != should_block:
             await self.repository.update_by_id(post_id, is_blocked=should_block)
+            await invalidate_posts_cache()
             logger.info(f"Post {post.id} is_blocked set to {should_block}")
 
     async def search(self, query: str) -> [PostRead]:

@@ -6,21 +6,22 @@ from fastapi import (
     APIRouter, Query,
 )
 from starlette import status
-import aioredis
 
 from app.core.auth.dependencies import CurrentUserDependency
-from app.core.config import settings
+from app.core.cache import (
+    POSTS_CACHE_TTL_SECONDS,
+    get_cached,
+    posts_page_key,
+    set_cached,
+)
 from app.dependencies.services import PostServiceDependency, CommentServiceDependency
 from app.schemas.comment import CommentRead, PaginatedComments, CommentFilterParams
 from app.schemas.post import Post, PostUpdate, PaginatedPosts, PostFilterParams
 from app.schemas.post import PostRead
 
 router = APIRouter()
-redis = aioredis.from_url(settings.redis_cache_url)
-
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 @router.post("/", response_model=PostRead)
@@ -38,25 +39,16 @@ async def create_post(
 async def get_posts(
     current_user: CurrentUserDependency,
     service: PostServiceDependency,
-    fileter_params: Annotated[PostFilterParams, Query()]
+    filter_params: Annotated[PostFilterParams, Query()]
 ):
-    logger.debug(fileter_params)
-    redis_key = f"get-posts-page-{fileter_params.page}-{fileter_params.limit}"
-    cached_page = await redis.get(
-        redis_key
-    )
+    cache_key = await posts_page_key(filter_params)
+    cached_page = await get_cached(cache_key)
     if cached_page:
-        logger.debug(f"Got cached data from redis: {cached_page}")
-        return json.loads(cached_page.decode("utf-8"))
+        logger.debug(f"Posts page served from cache: {cache_key}")
+        return json.loads(cached_page)
 
-    response = await service.get_list(
-        fileter_params
-    )
-    await redis.set(
-        redis_key,
-        response.model_dump_json(),
-        ex=60
-    )
+    response = await service.get_list(filter_params)
+    await set_cached(cache_key, response.model_dump_json(), POSTS_CACHE_TTL_SECONDS)
     return response
 
 
