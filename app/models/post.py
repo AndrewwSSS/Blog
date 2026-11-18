@@ -20,7 +20,9 @@ class PostDB(BaseModel):
     owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
 
     owner: Mapped["UserDB"] = relationship("UserDB", back_populates="posts")
-    comments: Mapped[list["CommentDB"]] = relationship("CommentDB", back_populates="post")
+    comments: Mapped[list["CommentDB"]] = relationship(
+        "CommentDB", back_populates="post", passive_deletes=True
+    )
 
     def __repr__(self) -> str:
         return (f"<PostDB(id={self.id}, "
