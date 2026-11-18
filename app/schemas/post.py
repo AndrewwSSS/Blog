@@ -56,16 +56,14 @@ class PaginatedPosts(BaseModel):
 
 
 class PostFilterParams(BaseModel):
-    page: int | None = Field(default=1, ge=1)
-    limit: int | None = Field(default=5, ge=1, le=100)
+    page: int = Field(default=1, ge=1)
+    limit: int = Field(default=5, ge=1, le=100)
     owner_id: int | None = Field(default=None, ge=1)
     date_from: datetime | None = None
     date_to: datetime | None = None
 
     @model_validator(mode="after")
-    def check_date_from_greater_than_date_to(self):
-        if not (self.date_from and self.date_to):
-            return self
-        if self.date_from > self.date_to:
-            raise ValueError("Date must be greater than date_to.")
+    def check_date_range(self):
+        if self.date_from and self.date_to and self.date_from > self.date_to:
+            raise ValueError("date_from must be earlier than or equal to date_to.")
         return self

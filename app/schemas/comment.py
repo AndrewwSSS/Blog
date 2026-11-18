@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import ClassVar, List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic import ConfigDict
 
 
@@ -41,12 +41,18 @@ class CommentInDB(BaseModel):
 
 
 class CommentFilterParams(BaseModel):
-    page: int | None = 1
-    limit: int | None = 5
+    page: int = Field(default=1, ge=1)
+    limit: int = Field(default=5, ge=1, le=100)
     date_from: datetime | None = None
     date_to: datetime | None = None
     owner_id: int | None = Field(None, ge=1)
     post_id: int | None = Field(None, ge=1)
+
+    @model_validator(mode="after")
+    def check_date_range(self):
+        if self.date_from and self.date_to and self.date_from > self.date_to:
+            raise ValueError("date_from must be earlier than or equal to date_to.")
+        return self
 
 
 class PaginatedComments(BaseModel):

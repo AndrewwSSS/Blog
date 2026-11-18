@@ -1,8 +1,7 @@
 from typing import ClassVar
 
-from pydantic import BaseModel, EmailStr, model_validator
+from pydantic import BaseModel, EmailStr, Field, model_validator
 from pydantic import ConfigDict
-from pydantic import field_validator
 
 
 class UserRegister(BaseModel):
@@ -34,17 +33,11 @@ class UserRead(BaseModel):
 
 class UserUpdate(BaseModel):
     post_auto_reply: bool | None = None
-    reply_after: float | None = None
-
-    @field_validator("reply_after")
-    def check_reply_after(cls, value) -> float:
-        if value and value < 1:
-            raise ValueError("reply_after must be greater than 1")
-        return value
+    reply_after: float | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
     def check_at_least_one_field(self):
-        if not any([self.post_auto_reply, self.reply_after]):
+        if self.post_auto_reply is None and self.reply_after is None:
             raise ValueError("At least one of 'post_auto_reply' or 'reply_after' must be set.")
         return self
 

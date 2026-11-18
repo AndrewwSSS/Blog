@@ -33,16 +33,17 @@ class PostService:
         filter_params: PostFilterParams
     ) -> PaginatedPosts:
 
-        count_total_items = await self.repository.count_records()
+        filters = filter_params.model_dump(exclude_none=True, exclude={"page", "limit"})
         paginator = PagePaginator(
             filter_params.page,
             filter_params.limit,
-            count_total_items,
+            await self.repository.count_list(**filters),
         )
 
         results = await self.repository.get_list(
             offset=paginator.offset,
-            **filter_params.dict(exclude_none=True, exclude={"page"}),
+            limit=paginator.limit,
+            **filters,
         )
 
         return PaginatedPosts(

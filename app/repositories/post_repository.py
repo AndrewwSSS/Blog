@@ -1,9 +1,7 @@
 import logging
 from datetime import datetime
 
-from sqlalchemy import (
-    select,
-)
+from sqlalchemy import Select, func, select
 
 from app.models import PostDB
 from app.core.async_elasticsearch_client import AsyncElasticsearchClient
@@ -17,6 +15,22 @@ class PostRepository(AsyncDatabaseRepository):
     model = PostDB
     pydantic_model = PostInDB
 
+    @staticmethod
+    def _apply_filters(
+        query: Select,
+        date_from: datetime = None,
+        date_to: datetime = None,
+        owner_id: int = None,
+    ) -> Select:
+        query = query.where(PostDB.is_blocked.is_(False))
+        if date_from:
+            query = query.where(PostDB.date_posted >= date_from)
+        if date_to:
+            query = query.where(PostDB.date_posted <= date_to)
+        if owner_id:
+            query = query.where(PostDB.owner_id == owner_id)
+        return query
+
     async def get_list(
         self,
         offset: int = None,
@@ -25,25 +39,14 @@ class PostRepository(AsyncDatabaseRepository):
         date_to: datetime = None,
         owner_id: int = None,
     ) -> list[PostInDB]:
-        query = select(PostDB).where(PostDB.is_blocked.is_(False))
+        query = self._apply_filters(
+            select(PostDB), date_from, date_to, owner_id
+        ).order_by(PostDB.id)
 
         if offset:
             query = query.offset(offset)
         if limit:
             query = query.limit(limit)
-
-        if date_from:
-            query = query.where(
-                PostDB.date_posted >= date_from
-            )
-        if date_to:
-            query = query.where(
-                PostDB.date_posted <= date_to
-            )
-        if owner_id:
-            query = query.where(
-                PostDB.owner_id == owner_id
-            )
 
         result = await self.session.execute(query)
         posts = result.scalars().all()
@@ -52,6 +55,18 @@ class PostRepository(AsyncDatabaseRepository):
             PostInDB.model_validate(post)
             for post in posts
         ]
+
+    async def count_list(
+        self,
+        date_from: datetime = None,
+        date_to: datetime = None,
+        owner_id: int = None,
+    ) -> int:
+        query = self._apply_filters(
+            select(func.count()).select_from(PostDB), date_from, date_to, owner_id
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one()
 
     async def search(self, query_string: str) -> list[PostInDB]:
         es_repo = AsyncElasticsearchClient()

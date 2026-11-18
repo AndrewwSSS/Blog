@@ -30,15 +30,16 @@ class CommentService:
         self,
         filter_params: CommentFilterParams,
     ) -> PaginatedComments:
-        count_records = await self.repository.count_records()
+        filters = filter_params.model_dump(exclude_none=True, exclude={"page", "limit"})
         paginator = PagePaginator(
             page=filter_params.page,
             limit=filter_params.limit,
-            total_records=count_records,
+            total_records=await self.repository.count_list(**filters),
         )
         comments = await self.repository.get_list(
             offset=paginator.offset,
-            **filter_params.model_dump(exclude_unset=True, exclude={"page"}),
+            limit=paginator.limit,
+            **filters,
         )
 
         return PaginatedComments(
