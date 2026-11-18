@@ -1,8 +1,6 @@
-from typing import ClassVar
 from typing import Type
 
-from pydantic import ConfigDict
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.reply_generators.base_ai_reply_generator import BaseAIReplyGenerator
 from app.core.reply_generators.groq_reply_generator import GroqReplyGenerator
@@ -17,6 +15,8 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
 
     ELASTICSEARCH_URL: str = "http://elasticsearch:9200"
+
+    PUBLIC_BASE_URL: str = "http://127.0.0.1:8000"
 
     SECRET_KEY: str
     EMAIL_TOKEN_SALT: str
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     CONTENT_VALIDATOR_CLASS: Type[BaseContentValidator] = GroqValidator
     REPLY_GENERATOR_CLASS: Type[BaseAIReplyGenerator] = GroqReplyGenerator
 
-    REDIS_HOST: str | None = "localhost"
+    REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
 
     SMTP_HOST: str = "smtp.gmail.com"
@@ -44,8 +44,9 @@ class Settings(BaseSettings):
 
     KAFKA_URL: str
 
-    model_config: ClassVar[ConfigDict] = ConfigDict(
+    model_config = SettingsConfigDict(
         env_file=".env",
+        env_ignore_empty=True,
     )
 
     @property
@@ -53,7 +54,11 @@ class Settings(BaseSettings):
         return (f"postgresql+asyncpg://{self.POSTGRES_USER}"
                 f":{self.POSTGRES_PASSWORD}"
                 f"@{self.POSTGRES_HOST}"
-                f":5432/{self.POSTGRES_DB}")
+                f":{self.POSTGRES_PORT}/{self.POSTGRES_DB}")
+
+    @property
+    def email_verification_url_prefix(self) -> str:
+        return f"{self.PUBLIC_BASE_URL.rstrip('/')}/api/v1/users/verification/"
 
     @property
     def test_database_url(self) -> str:

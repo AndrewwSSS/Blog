@@ -35,30 +35,28 @@ This is a simple API built for managing blog posts and comments, featuring autom
 
 ### Configuration
 
-create .env file:
+Create the .env file (it never overwrites an existing one):
 ```shell
-cat .env.template > .env
+make env
 ```
 
-Provide all required variables.
-Test data(api keys can be expired):
+Fill in all required variables. Optional ones can stay empty to use their defaults.
+Example values for local development:
 ```shell
    POSTGRES_USER=test
    POSTGRES_PASSWORD=test
    POSTGRES_DB=test
-   POSTGRES_HOST=localhost
-   
+   POSTGRES_HOST=db
+
    SECRET_KEY=<output of: python -c "import secrets; print(secrets.token_urlsafe(32))">
    EMAIL_TOKEN_SALT=<another random string>
-   
-   OPENAI_API_KEY=<your-openai-api-key>
+
+   KAFKA_URL=kafka:9092
+
+   SMTP_USER=<your-smtp-login>
+   SMTP_USER_PASSWORD=<your-smtp-app-password>
+
    GROQ_API_KEY=<your-groq-api-key>
-   
-   TEST_DB_PORT=6000
-   TEST_DB_USER=test_user
-   TEST_DB_PASSWORD=test_password
-   TEST_DB_HOST=test_db
-   TEST_DB_NAME=test
 ```
 
 To obtain GROQ_API_KEY You can visit https://console.groq.com/keys.

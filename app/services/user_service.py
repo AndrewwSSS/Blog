@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.auth.utils import create_access_token
 from app.core.auth.utils import create_refresh_token
 from app.core.auth.utils import verify_token
+from app.core.config import settings
 from app.core.security import (
     dummy_verify_password,
     get_password_hash,
@@ -47,8 +48,9 @@ class UserService:
         payload = json.dumps(
             {
                 "id": created_user.id,
-                "verification_url": f"http://127.0.0.1:8000/api/v1/"
-                                    f"users/verification/{verification_token}",
+                "verification_url": (
+                    f"{settings.email_verification_url_prefix}{verification_token}"
+                ),
             }
         )
         await AsyncKafkaProducer.publish(
