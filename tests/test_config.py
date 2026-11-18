@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-import pytest
 
 from app.core.config import Settings, settings
 from app.pubsub.async_kafka_producer import AsyncKafkaProducer
@@ -10,17 +9,6 @@ from app.services.user_service import UserService
 
 ENV_TEMPLATE = Path(__file__).resolve().parent.parent / ".env.template"
 
-REQUIRED = {
-    "POSTGRES_USER": "user",
-    "POSTGRES_PASSWORD": "password",
-    "POSTGRES_DB": "blog",
-    "POSTGRES_HOST": "db",
-    "SECRET_KEY": "secret",
-    "EMAIL_TOKEN_SALT": "salt",
-    "KAFKA_URL": "kafka:9092",
-    "SMTP_USER": "smtp-user",
-    "SMTP_USER_PASSWORD": "smtp-password",
-}
 OPTIONAL_WITH_DEFAULTS = {
     "POSTGRES_PORT": 5432,
     "REDIS_PORT": 6379,
@@ -29,15 +17,10 @@ OPTIONAL_WITH_DEFAULTS = {
 }
 
 
-@pytest.fixture
-def required_env(monkeypatch) -> None:
-    for name, value in REQUIRED.items():
-        monkeypatch.setenv(name, value)
+def test_env_template_with_empty_optional_values_loads(required_env, monkeypatch):
     for name in OPTIONAL_WITH_DEFAULTS:
         monkeypatch.delenv(name, raising=False)
 
-
-def test_env_template_with_empty_optional_values_loads(required_env):
     loaded = Settings(_env_file=ENV_TEMPLATE)
 
     for name, default in OPTIONAL_WITH_DEFAULTS.items():

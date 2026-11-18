@@ -1,5 +1,6 @@
 import httpx
 
+from app.core.config import settings
 from app.core.reply_generators.base_ai_reply_generator import BaseAIReplyGenerator
 
 
@@ -14,8 +15,6 @@ class GroqReplyGenerator(BaseAIReplyGenerator):
         return self.prompt.format(title=title, content=content)
 
     async def generate_post_reply(self, title: str, content: str) -> str:
-        from app.core.config import settings
-
         headers = {
             "Authorization": f"Bearer {settings.GROQ_API_KEY}",
             "Content-Type": "application/json",

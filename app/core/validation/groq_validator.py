@@ -1,5 +1,6 @@
 import httpx
 
+from app.core.config import settings
 from app.core.validation.base_content_validator import BaseContentValidator
 
 
@@ -17,8 +18,6 @@ class GroqValidator(BaseContentValidator):
         return self.VALIDATE_POST_PROMT_TEMPLATE.format(title=title, content=content)
 
     async def validate_post(self, content: str, title: str) -> bool:
-        from app.core.config import settings
-
         headers = {
             "Authorization": f"Bearer {settings.GROQ_API_KEY}",
             "Content-Type": "application/json",

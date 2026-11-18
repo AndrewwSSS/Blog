@@ -1,10 +1,6 @@
-from typing import Type
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from app.core.reply_generators.base_ai_reply_generator import BaseAIReplyGenerator
-from app.core.reply_generators.groq_reply_generator import GroqReplyGenerator
-from app.core.validation.groq_validator import GroqValidator, BaseContentValidator
 
 
 class Settings(BaseSettings):
@@ -31,8 +27,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str | None = None
     GROQ_API_KEY: str | None = None
 
-    CONTENT_VALIDATOR_CLASS: Type[BaseContentValidator] = GroqValidator
-    REPLY_GENERATOR_CLASS: Type[BaseAIReplyGenerator] = GroqReplyGenerator
+    CONTENT_VALIDATOR: Literal["groq", "openai"] = "groq"
+    REPLY_GENERATOR: Literal["groq"] = "groq"
 
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379

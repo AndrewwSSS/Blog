@@ -3,7 +3,6 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.celery import tasks
-from app.core.config import settings
 from app.core.validation.base_content_validator import BaseContentValidator
 from app.repositories.comment_repository import CommentRepository
 from app.repositories.post_repository import PostRepository
@@ -85,11 +84,11 @@ async def test_validate_post_blocks_and_unblocks(
     repository = PostRepository(session)
     service = PostService(repository)
 
-    monkeypatch.setattr(settings, "CONTENT_VALIDATOR_CLASS", RejectAllValidator)
+    monkeypatch.setattr(post_service, "get_content_validator", RejectAllValidator)
     await service.validate_content(test_post.id)
     assert (await repository.get_by_id(test_post.id)).is_blocked is True
 
-    monkeypatch.setattr(settings, "CONTENT_VALIDATOR_CLASS", AcceptAllValidator)
+    monkeypatch.setattr(post_service, "get_content_validator", AcceptAllValidator)
     await service.validate_content(test_post.id)
     assert (await repository.get_by_id(test_post.id)).is_blocked is False
 
@@ -102,11 +101,11 @@ async def test_validate_comment_blocks_and_unblocks(
     repository = CommentRepository(session)
     service = CommentService(repository)
 
-    monkeypatch.setattr(settings, "CONTENT_VALIDATOR_CLASS", RejectAllValidator)
+    monkeypatch.setattr(comment_service, "get_content_validator", RejectAllValidator)
     await service.validate_content(test_comment.id)
     assert (await repository.get_by_id(test_comment.id)).is_blocked is True
 
-    monkeypatch.setattr(settings, "CONTENT_VALIDATOR_CLASS", AcceptAllValidator)
+    monkeypatch.setattr(comment_service, "get_content_validator", AcceptAllValidator)
     await service.validate_content(test_comment.id)
     assert (await repository.get_by_id(test_comment.id)).is_blocked is False
 
@@ -213,7 +212,7 @@ async def test_auto_reply_creates_comment(
             return "auto reply"
 
     monkeypatch.setattr(tasks, "async_session", async_session_maker)
-    monkeypatch.setattr(settings, "REPLY_GENERATOR_CLASS", FakeReplyGenerator)
+    monkeypatch.setattr(tasks, "get_reply_generator", FakeReplyGenerator)
 
     await tasks._create_reply_for_post(test_post.id)
 

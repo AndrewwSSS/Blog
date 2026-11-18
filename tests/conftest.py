@@ -22,6 +22,25 @@ from tests.fixtures import (
 
 logging.disable(logging.INFO)
 
+REQUIRED_ENV = {
+    "POSTGRES_USER": "user",
+    "POSTGRES_PASSWORD": "password",
+    "POSTGRES_DB": "blog",
+    "POSTGRES_HOST": "db",
+    "SECRET_KEY": "secret",
+    "EMAIL_TOKEN_SALT": "salt",
+    "KAFKA_URL": "kafka:9092",
+    "SMTP_USER": "smtp-user",
+    "SMTP_USER_PASSWORD": "smtp-password",
+}
+
+
+@pytest.fixture
+def required_env(monkeypatch) -> None:
+    """Set every required setting, so Settings() can be built without a .env file."""
+    for name, value in REQUIRED_ENV.items():
+        monkeypatch.setenv(name, value)
+
 
 class FakeRedis:
     def __init__(self) -> None:

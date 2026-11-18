@@ -4,6 +4,7 @@ import logging
 from celery import Celery
 
 from app.core.config import settings
+from app.core.reply_generators import get_reply_generator
 from app.db.session import async_session
 from app.core.async_elasticsearch_client import AsyncElasticsearchClient
 from app.repositories.comment_repository import CommentRepository
@@ -133,7 +134,7 @@ async def _create_reply_for_post(post_id: int) -> None:
         if post.is_blocked:
             logger.info(f"Post {post_id} is blocked, reply canceled")
             return
-        reply_generator = settings.REPLY_GENERATOR_CLASS()
+        reply_generator = get_reply_generator()
         reply_content = await reply_generator.generate_post_reply(
             post.title,
             post.content,

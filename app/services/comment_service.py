@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from starlette import status
 
-from app.core.config import settings
+from app.core.validation import get_content_validator
 from app.core.utils import PagePaginator
 from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import (
@@ -71,7 +71,7 @@ class CommentService:
         comment = await self.repository.get_by_id(comment_id)
         if not comment:
             raise ValueError("Comment not found")
-        validator = settings.CONTENT_VALIDATOR_CLASS()
+        validator = get_content_validator()
         is_validated = await validator.validate_comment(
             comment.content,
         )
