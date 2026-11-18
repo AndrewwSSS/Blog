@@ -1,9 +1,5 @@
 from passlib.context import CryptContext
-from itsdangerous import (
-    URLSafeTimedSerializer,
-    BadSignature,
-    SignatureExpired
-)
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from app.core.config import settings
 

@@ -19,11 +19,7 @@ class EmailService:
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as smtp_server:
             smtp_server.starttls()
             smtp_server.login(settings.SMTP_USER, settings.SMTP_USER_PASSWORD)
-            return smtp_server.sendmail(
-                settings.SMTP_USER,
-                self.user.email,
-                message.as_string()
-            )
+            return smtp_server.sendmail(settings.SMTP_USER, self.user.email, message.as_string())
 
     async def _send_mail(self, message: MIMEMultipart) -> dict:
         return await asyncio.to_thread(self._send_mail_sync, message)
@@ -36,16 +32,13 @@ class EmailService:
         return self._handle_response(response)
 
     async def send_verification_email(self, verification_url: str) -> bool:
-        message = self._generate_verification_email(
-            verification_url
-        )
+        message = self._generate_verification_email(verification_url)
         response = await self._send_mail(message)
         return self._handle_response(response)
 
     def _handle_response(self, response: dict) -> bool:
         if response:
-            logger.error(f"Failed to send email to {self.user.email} "
-                         f"Response {response}")
+            logger.error(f"Failed to send email to {self.user.email} Response {response}")
             return False
         return True
 
@@ -55,10 +48,7 @@ class EmailService:
         message["To"] = self.user.email
         message["Subject"] = "Account verification"
 
-        part = MIMEText(
-            self._generate_verification_email_html(verification_url),
-            "html"
-        )
+        part = MIMEText(self._generate_verification_email_html(verification_url), "html")
 
         message.attach(part)
         return message
@@ -69,10 +59,7 @@ class EmailService:
         message["To"] = self.user.email
         message["Subject"] = "Welcome to Blog service"
 
-        part = MIMEText(
-            self._generate_welcome_email_html(),
-            "html"
-        )
+        part = MIMEText(self._generate_welcome_email_html(), "html")
 
         message.attach(part)
         return message

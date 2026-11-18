@@ -12,7 +12,8 @@ from app.schemas.comment import (
     CommentCreate,
     CommentInDB,
     CommentUpdate,
-    CommentFilterParams, PaginatedComments
+    CommentFilterParams,
+    PaginatedComments,
 )
 from app.schemas.user import UserInDB
 from app.celery.tasks import validate_comment_content
@@ -67,9 +68,7 @@ class CommentService:
         return await self.repository.get_analytics(date_from, date_to)
 
     async def validate_content(self, comment_id) -> None:
-        comment = await self.repository.get_by_id(
-            comment_id
-        )
+        comment = await self.repository.get_by_id(comment_id)
         if not comment:
             raise ValueError("Comment not found")
         validator = settings.CONTENT_VALIDATOR_CLASS()
@@ -82,29 +81,21 @@ class CommentService:
             logger.info(f"Comment {comment.id} is_blocked set to {should_block}")
 
     async def get_by_id(self, record_id: int, include_blocked: bool = False) -> CommentInDB:
-        comment = await self.repository.get_by_id(
-            record_id
-        )
+        comment = await self.repository.get_by_id(record_id)
         if not comment or (comment.is_blocked and not include_blocked):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Comment with id {record_id} not found"
+                detail=f"Comment with id {record_id} not found",
             )
         return comment
 
     async def update_by_id(
-        self,
-        record_id: int,
-        current_user: UserInDB,
-        comment_update: CommentUpdate
+        self, record_id: int, current_user: UserInDB, comment_update: CommentUpdate
     ) -> CommentInDB:
         comment_to_update = await self.get_by_id(record_id, include_blocked=True)
 
         if comment_to_update.owner_id != current_user.id and not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Permission denied"
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
 
         updated = await self.repository.update_by_id(
             record_id=record_id,
@@ -127,10 +118,7 @@ class CommentService:
         comment_to_delete = await self.get_by_id(record_id, include_blocked=True)
 
         if comment_to_delete.owner_id != current_user.id and not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Permission denied"
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
 
         deleted = await self.repository.delete_by_id(
             record_id,

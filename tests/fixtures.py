@@ -27,11 +27,7 @@ def enable_sqlite_foreign_keys(dbapi_connection, connection_record) -> None:
     cursor.close()
 
 
-async_session_maker = sessionmaker(
-    engine_test,
-    class_=AsyncSession,
-    expire_on_commit=False
-)
+async_session_maker = sessionmaker(engine_test, class_=AsyncSession, expire_on_commit=False)
 
 
 async def create_comment(
@@ -42,33 +38,19 @@ async def create_comment(
     async with async_session_maker() as session:
         repository = CommentRepository(session)
         comment = CommentCreate(content=f"{content}-{uuid.uuid4()}", post_id=post_id)
-        created_comment = await repository.create(
-            **comment.model_dump(),
-            owner_id=owner_id
-        )
+        created_comment = await repository.create(**comment.model_dump(), owner_id=owner_id)
     return created_comment
 
 
-async def create_post(
-    owner_id: int,
-    content: str = "",
-    title: str = ""
-) -> PostInDB:
+async def create_post(owner_id: int, content: str = "", title: str = "") -> PostInDB:
     async with async_session_maker() as session:
         repository = PostRepository(session)
         post = Post(content=f"{content}-{uuid.uuid4()}", title=f"{title}-{uuid.uuid4()}")
-        created_post = await repository.create(
-            **post.model_dump(),
-            owner_id=owner_id
-        )
+        created_post = await repository.create(**post.model_dump(), owner_id=owner_id)
     return created_post
 
 
-async def create_user(
-    username: str = "",
-    email: str = "",
-    password: str = ""
-) -> UserInDB:
+async def create_user(username: str = "", email: str = "", password: str = "") -> UserInDB:
     async with async_session_maker() as session:
         repository = UserRepository(session)
 

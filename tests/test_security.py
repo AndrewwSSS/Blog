@@ -71,9 +71,7 @@ async def test_authenticate_hides_whether_user_exists(username, password):
     service = UserService(FakeUserRepository(make_user()))
 
     with pytest.raises(HTTPException) as exc_info:
-        await service.authenticate(
-            UserLoginRequest(username=username, password=password)
-        )
+        await service.authenticate(UserLoginRequest(username=username, password=password))
 
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Incorrect username or password"
@@ -91,9 +89,7 @@ async def test_authenticate_returns_user_for_correct_password():
 
 
 def test_email_html_escapes_username():
-    service = mail_service.EmailService(
-        make_user(username='<img src=x onerror="alert(1)">')
-    )
+    service = mail_service.EmailService(make_user(username='<img src=x onerror="alert(1)">'))
 
     welcome = service._generate_welcome_email_html()
     verification = service._generate_verification_email_html("http://x/?a=1&b=2")

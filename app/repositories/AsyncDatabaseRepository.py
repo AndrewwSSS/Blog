@@ -24,8 +24,7 @@ class AsyncDatabaseRepository(ABC):
         if not self.model:
             raise TypeError("model not defined")
 
-
-    async def get_by_id(self, record_id: int) ->  list[Type[PydanticBaseModel]] | None:
+    async def get_by_id(self, record_id: int) -> list[Type[PydanticBaseModel]] | None:
         query = select(self.model).where(self.model.id == record_id)
         result = await self.session.execute(query)
         post_db = result.scalar_one_or_none()
@@ -33,10 +32,7 @@ class AsyncDatabaseRepository(ABC):
             return self.pydantic_model.model_validate(post_db)
 
     async def delete_by_id(self, record_id: int) -> bool | None:
-        query = (
-            delete(self.model)
-            .where(self.model.id == record_id)
-        )
+        query = delete(self.model).where(self.model.id == record_id)
 
         result = await self.session.execute(query)
         await self.session.commit()
@@ -57,23 +53,16 @@ class AsyncDatabaseRepository(ABC):
         return result.rowcount == 1
 
     async def create(self, **data) -> Type[BaseModel]:
-        record = self.model(
-            **data
-        )
+        record = self.model(**data)
 
         self.session.add(record)
         await self.session.commit()
         await self.session.refresh(record)
 
-        return self.pydantic_model.model_validate(
-            record
-        )
+        return self.pydantic_model.model_validate(record)
 
     async def get_by_ids(self, records_ids: Iterable[int]) -> Type[BaseModel]:
         query = select(self.model).where(self.model.id.in_(records_ids))
         result = await self.session.execute(query)
         posts_list = result.scalars().all()
-        return [
-            self.pydantic_model.model_validate(post)
-            for post in posts_list
-        ]
+        return [self.pydantic_model.model_validate(post) for post in posts_list]

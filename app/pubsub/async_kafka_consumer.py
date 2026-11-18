@@ -19,7 +19,8 @@ class AsyncKafkaConsumer:
 
     def __init__(self):
         self.consumer = AIOKafkaConsumer(
-            "new-user-registration", "new-active-user",
+            "new-user-registration",
+            "new-active-user",
             bootstrap_servers=settings.KAFKA_URL,
             group_id="notification-service-server",
             auto_offset_reset="latest",
@@ -44,11 +45,13 @@ class AsyncKafkaConsumer:
             )
 
     async def _process_batch(self, topic_messages: dict) -> None:
-        await asyncio.gather(*(
-            self._handle_message(message)
-            for messages in topic_messages.values()
-            for message in messages
-        ))
+        await asyncio.gather(
+            *(
+                self._handle_message(message)
+                for messages in topic_messages.values()
+                for message in messages
+            )
+        )
         if topic_messages:
             await self.consumer.commit()
 
@@ -69,10 +72,7 @@ class AsyncKafkaConsumer:
             is_sent = await EmailService(user).send_welcome_email()
 
             if is_sent:
-                await user_repo.update_by_id(
-                    record_id=user.id,
-                    welcome_email_sent=True
-                )
+                await user_repo.update_by_id(record_id=user.id, welcome_email_sent=True)
             else:
                 logger.error(f"Failed to send welcome email to user {user.email}")
 

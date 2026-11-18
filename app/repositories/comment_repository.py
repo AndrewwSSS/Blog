@@ -4,9 +4,7 @@ from sqlalchemy import Integer, Select, func, select
 
 from app.models import CommentDB
 from app.repositories.AsyncDatabaseRepository import AsyncDatabaseRepository
-from app.schemas.comment import (
-    CommentInDB
-)
+from app.schemas.comment import CommentInDB
 
 
 class CommentRepository(AsyncDatabaseRepository):
@@ -52,10 +50,7 @@ class CommentRepository(AsyncDatabaseRepository):
 
         result = await self.session.execute(query)
         comments = result.scalars().all()
-        return [
-            CommentInDB.model_validate(comment)
-            for comment in comments
-        ]
+        return [CommentInDB.model_validate(comment) for comment in comments]
 
     async def count_list(
         self,
@@ -66,21 +61,20 @@ class CommentRepository(AsyncDatabaseRepository):
     ) -> int:
         query = self._apply_filters(
             select(func.count()).select_from(CommentDB),
-            owner_id, post_id, date_from, date_to,
+            owner_id,
+            post_id,
+            date_from,
+            date_to,
         )
         result = await self.session.execute(query)
         return result.scalar_one()
 
-    async def get_analytics(
-        self,
-        date_from: date,
-        date_to: date
-    ):
+    async def get_analytics(self, date_from: date, date_to: date):
         query = (
             select(
                 func.date(CommentDB.date_posted).label("date"),
                 func.count(CommentDB.id).label("total_comments"),
-                func.sum(func.cast(CommentDB.is_blocked, Integer)).label("blocked_comments")
+                func.sum(func.cast(CommentDB.is_blocked, Integer)).label("blocked_comments"),
             )
             .where(func.date(CommentDB.date_posted) >= date_from)
             .where(func.date(CommentDB.date_posted) <= date_to)
@@ -90,4 +84,3 @@ class CommentRepository(AsyncDatabaseRepository):
 
         result = await self.session.execute(query)
         return result.all()
-

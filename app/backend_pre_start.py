@@ -3,13 +3,7 @@ import json
 import logging
 
 from sqlalchemy import select
-from tenacity import (
-    after_log,
-    before_log,
-    retry,
-    stop_after_attempt,
-    wait_fixed
-)
+from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
 from elasticsearch.exceptions import ConnectionError
 
 from app.db.session import async_session
@@ -67,10 +61,7 @@ async def create_indexes(repository: AsyncElasticsearchClient) -> None:
         index_body = json.load(f)
         logger.info(f"Mappings loaded: {index_body}")
 
-    if await repository.create_index(
-        index_name="posts",
-        body=index_body
-    ):
+    if await repository.create_index(index_name="posts", body=index_body):
         logger.info("Index 'posts' created.")
     else:
         logger.info("Index 'posts' already exists.")
@@ -84,8 +75,7 @@ async def create_search_templates(repository: AsyncElasticsearchClient) -> None:
 
     template_id = "full-text-search"
     response = await repository.create_or_update_script(
-        script_id=template_id,
-        body=search_template_body
+        script_id=template_id, body=search_template_body
     )
     logger.info(f"Search template '{template_id}' saved. Response: {response}")
 
@@ -112,6 +102,7 @@ async def main() -> None:
     await create_indexes(repo)
     await create_search_templates(repo)
     await AsyncElasticsearchClient.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

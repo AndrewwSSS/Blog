@@ -7,18 +7,14 @@ from sqlalchemy.future import select
 
 from app.models import CommentDB
 from app.repositories.comment_repository import CommentRepository
-from app.schemas.comment import CommentCreate,CommentInDB
+from app.schemas.comment import CommentCreate, CommentInDB
 from app.schemas.post import PostInDB
 from app.schemas.user import UserRead
 from tests.fixtures import create_comment
 
 
 @pytest.mark.asyncio
-async def test_create_comment(
-    test_post: UserRead,
-    test_user: UserRead,
-    session
-):
+async def test_create_comment(test_post: UserRead, test_user: UserRead, session):
     comment_content = "Test comment"
     repository = CommentRepository(session)
     new_comment = CommentCreate(content=comment_content, post_id=test_post.id)
@@ -104,22 +100,10 @@ async def test_get_comments_analytics(
     test_post: PostInDB,
     session: AsyncSession,
 ):
-    await create_comment(
-        test_post.id,
-        test_post.owner_id
-    )
-    await create_comment(
-        test_post.id,
-        test_post.owner_id
-    )
-    await create_comment(
-        test_post.id,
-        test_post.owner_id
-    )
-    await create_comment(
-        test_post.id,
-        test_post.owner_id
-    )
+    await create_comment(test_post.id, test_post.owner_id)
+    await create_comment(test_post.id, test_post.owner_id)
+    await create_comment(test_post.id, test_post.owner_id)
+    await create_comment(test_post.id, test_post.owner_id)
     today = date.today()
 
     repository = CommentRepository(session)
@@ -154,13 +138,9 @@ async def test_update_by_id(
     new_is_blocked_value = True
     comment_repo = CommentRepository(session)
     updated = await comment_repo.update_by_id(
-        record_id=test_comment.id,
-        content=new_content_value,
-        is_blocked=new_is_blocked_value
+        record_id=test_comment.id, content=new_content_value, is_blocked=new_is_blocked_value
     )
-    result_comment = await comment_repo.get_by_id(
-        test_comment.id
-    )
+    result_comment = await comment_repo.get_by_id(test_comment.id)
 
     assert updated
     assert result_comment.content == new_content_value
@@ -174,12 +154,8 @@ async def test_delete_by_id(
     session: AsyncSession,
 ):
     comment_repo = CommentRepository(session)
-    deleted = await comment_repo.delete_by_id(
-        test_comment.id
-    )
-    deleted_comment = await comment_repo.get_by_id(
-        test_comment.id
-    )
+    deleted = await comment_repo.delete_by_id(test_comment.id)
+    deleted_comment = await comment_repo.get_by_id(test_comment.id)
 
     assert deleted
     assert deleted_comment is None

@@ -8,19 +8,14 @@ from app.core.cache import invalidate_posts_cache
 from app.core.config import settings
 from app.core.utils import PagePaginator
 from app.repositories.post_repository import PostRepository
-from app.schemas.post import (
-    Post,
-    PostUpdate,
-    PostInDB,
-    PaginatedPosts, PostFilterParams
-)
+from app.schemas.post import Post, PostUpdate, PostInDB, PaginatedPosts, PostFilterParams
 from app.schemas.user import UserInDB
 from app.celery.tasks import (
     create_reply_for_post,
     validate_post_content,
     add_post_to_elastic_search,
     update_post_document,
-    delete_post_document
+    delete_post_document,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,10 +25,7 @@ class PostService:
     def __init__(self, post_repository: PostRepository) -> None:
         self.repository = post_repository
 
-    async def get_list(
-        self,
-        filter_params: PostFilterParams
-    ) -> PaginatedPosts:
+    async def get_list(self, filter_params: PostFilterParams) -> PaginatedPosts:
 
         filters = filter_params.model_dump(exclude_none=True, exclude={"page", "limit"})
         paginator = PagePaginator(
@@ -64,10 +56,7 @@ class PostService:
 
         validate_post_content.delay(post.id)
         if user.post_auto_reply:
-            create_reply_for_post.apply_async(
-                args=(post.id,),
-                countdown=int(user.reply_after)
-            )
+            create_reply_for_post.apply_async(args=(post.id,), countdown=int(user.reply_after))
         add_post_to_elastic_search.delay(post.id)
 
         return post
@@ -76,16 +65,12 @@ class PostService:
         post = await self.repository.get_by_id(post_id)
         if not post or (post.is_blocked and not include_blocked):
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Post with id {post_id} not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id {post_id} not found"
             )
         return post
 
     async def update_by_id(
-        self,
-        post_id: int,
-        post: PostUpdate,
-        current_user: UserInDB
+        self, post_id: int, post: PostUpdate, current_user: UserInDB
     ) -> PostInDB:
 
         post_to_update = await self.get_by_id(post_id, include_blocked=True)
@@ -93,7 +78,7 @@ class PostService:
         if current_user.id != post_to_update.owner_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"You do not have permission to update post with id {post_id}"
+                detail=f"You do not have permission to update post with id {post_id}",
             )
 
         updated = await self.repository.update_by_id(
@@ -103,8 +88,7 @@ class PostService:
 
         if not updated:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Post with id {post_id} not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id {post_id} not found"
             )
 
         await invalidate_posts_cache()
@@ -112,17 +96,13 @@ class PostService:
         update_post_document.delay(post_id)
         return await self.repository.get_by_id(post_id)
 
-    async def delete_by_id(
-        self,
-        post_id: int,
-        user: UserInDB
-    ) -> None:
+    async def delete_by_id(self, post_id: int, user: UserInDB) -> None:
         post_to_delete = await self.get_by_id(post_id, include_blocked=True)
 
         if user.id != post_to_delete.owner_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"You do not have permission to delete post with id {post_id}"
+                detail=f"You do not have permission to delete post with id {post_id}",
             )
 
         await self.repository.delete_by_id(post_id)
@@ -136,7 +116,8 @@ class PostService:
             raise ValueError("Post not found")
         validator = settings.CONTENT_VALIDATOR_CLASS()
         is_validated = await validator.validate_post(
-            post.content, post.title,
+            post.content,
+            post.title,
         )
 
         should_block = not is_validated

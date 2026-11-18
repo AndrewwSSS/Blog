@@ -51,13 +51,16 @@ class RejectAllValidator(BaseContentValidator):
 def fake_tasks(monkeypatch) -> dict[str, FakeTask]:
     fakes = {}
     for module, names in (
-        (post_service, (
-            "create_reply_for_post",
-            "validate_post_content",
-            "add_post_to_elastic_search",
-            "update_post_document",
-            "delete_post_document",
-        )),
+        (
+            post_service,
+            (
+                "create_reply_for_post",
+                "validate_post_content",
+                "add_post_to_elastic_search",
+                "update_post_document",
+                "delete_post_document",
+            ),
+        ),
         (comment_service, ("validate_comment_content",)),
     ):
         for name in names:
@@ -134,9 +137,7 @@ async def test_owner_can_update_and_delete_blocked_post(
     await block_post(session, test_post.id)
     service = PostService(PostRepository(session))
 
-    updated = await service.update_by_id(
-        test_post.id, PostUpdate(content="edited"), test_user
-    )
+    updated = await service.update_by_id(test_post.id, PostUpdate(content="edited"), test_user)
     assert updated.content == "edited"
     assert fake_tasks["validate_post_content"].calls == [(test_post.id,)]
 
@@ -217,6 +218,4 @@ async def test_auto_reply_creates_comment(
     await tasks._create_reply_for_post(test_post.id)
 
     comments = await CommentRepository(session).get_list(post_id=test_post.id)
-    assert [(c.content, c.owner_id) for c in comments] == [
-        ("auto reply", test_post.owner_id)
-    ]
+    assert [(c.content, c.owner_id) for c in comments] == [("auto reply", test_post.owner_id)]

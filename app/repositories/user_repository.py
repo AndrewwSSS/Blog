@@ -9,11 +9,7 @@ class UserRepository(AsyncDatabaseRepository):
     model = UserDB
     pydantic_model = UserInDB
 
-    async def get_list(
-        self,
-        offset: int = None,
-        limit: int = None
-    ) -> [UserInDB]:
+    async def get_list(self, offset: int = None, limit: int = None) -> [UserInDB]:
         query = select(UserDB)
 
         if offset:
@@ -23,25 +19,18 @@ class UserRepository(AsyncDatabaseRepository):
 
         result = await self.session.execute(query)
         users_list = result.scalars().all()
-        return [
-            UserInDB.model_validate(user)
-            for user in users_list
-        ]
+        return [UserInDB.model_validate(user) for user in users_list]
 
     async def get_by_username(self, username: str) -> UserInDB | None:
         query = select(UserDB).where(UserDB.username == username)
         result = await self.session.execute(query)
         user_db = result.scalar_one_or_none()
         if user_db:
-            return UserInDB.model_validate(
-                user_db
-            )
+            return UserInDB.model_validate(user_db)
 
     async def get_by_email(self, email: str) -> UserInDB | None:
         query = select(UserDB).where(UserDB.email == email)
         result = await self.session.execute(query)
         user_db = result.scalar_one_or_none()
         if user_db:
-            return UserInDB.model_validate(
-                user_db
-            )
+            return UserInDB.model_validate(user_db)

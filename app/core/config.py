@@ -51,10 +51,12 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        return (f"postgresql+asyncpg://{self.POSTGRES_USER}"
-                f":{self.POSTGRES_PASSWORD}"
-                f"@{self.POSTGRES_HOST}"
-                f":{self.POSTGRES_PORT}/{self.POSTGRES_DB}")
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}"
+            f":{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}"
+            f":{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
 
     @property
     def email_verification_url_prefix(self) -> str:

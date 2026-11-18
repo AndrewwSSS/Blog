@@ -19,10 +19,7 @@ from app.schemas.user import UserRegister, UserLoginRequest
 from app.schemas.user import UserInDB
 from app.schemas.user import UserUpdate
 from app.pubsub.async_kafka_producer import AsyncKafkaProducer
-from app.core.security import (
-    verify_verification_token,
-    generate_email_verification_token
-)
+from app.core.security import verify_verification_token, generate_email_verification_token
 
 
 class UserService:
@@ -34,12 +31,12 @@ class UserService:
             created_user: UserInDB = await self.repository.create(
                 username=user.username,
                 hashed_password=get_password_hash(user.password),
-                email=user.email
+                email=user.email,
             )
         except IntegrityError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User with this username or email already exists."
+                detail="User with this username or email already exists.",
             ) from e
         verification_token = generate_email_verification_token(
             created_user.email,
@@ -68,9 +65,7 @@ class UserService:
         return user
 
     async def authenticate(self, user: UserLoginRequest) -> UserInDB:
-        user_db = await self.repository.get_by_username(
-            user.username
-        )
+        user_db = await self.repository.get_by_username(user.username)
         if user_db:
             password_ok = verify_password(user.password, user_db.hashed_password)
         else:
@@ -79,8 +74,7 @@ class UserService:
 
         if not password_ok:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password"
             )
 
         if not user_db.is_active:
@@ -101,10 +95,7 @@ class UserService:
             data={"user_id": user.id},
         )
 
-        return LoginResponse(
-            access_token=access_token,
-            refresh_token=refresh_token
-        )
+        return LoginResponse(access_token=access_token, refresh_token=refresh_token)
 
     async def refresh_access_token(self, refresh_token: str) -> TokenRefreshResponse:
         try:
@@ -132,8 +123,7 @@ class UserService:
 
     async def update_by_id(self, user_id: int, user: UserUpdate) -> UserInDB:
         updated = await self.repository.update_by_id(
-            record_id=user_id,
-            **user.model_dump(exclude_unset=True)
+            record_id=user_id, **user.model_dump(exclude_unset=True)
         )
         if not updated:
             raise HTTPException(
@@ -146,9 +136,7 @@ class UserService:
         self,
         token: str,
     ):
-        email = verify_verification_token(
-            token=token
-        )
+        email = verify_verification_token(token=token)
 
         if not email:
             raise HTTPException(
@@ -159,22 +147,12 @@ class UserService:
         user = await self.repository.get_by_email(email)
 
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
         if user.is_active:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User is already active"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="User is already active"
             )
 
-        await self.repository.update_by_id(
-            record_id=user.id,
-            is_active=True
-        )
-        await AsyncKafkaProducer.publish(
-            topic="new-active-user",
-            data=json.dumps({"email": email})
-        )
+        await self.repository.update_by_id(record_id=user.id, is_active=True)
+        await AsyncKafkaProducer.publish(topic="new-active-user", data=json.dumps({"email": email}))

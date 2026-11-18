@@ -25,6 +25,7 @@ async def lifespan(fast_api: FastAPI):
     await AsyncElasticsearchClient.close()
     await AsyncKafkaProducer.stop()
 
+
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(user.router, prefix="/api/v1/users", tags=["user"])

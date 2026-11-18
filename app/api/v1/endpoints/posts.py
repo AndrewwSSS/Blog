@@ -3,7 +3,8 @@ import logging
 from typing import List, Annotated
 
 from fastapi import (
-    APIRouter, Query,
+    APIRouter,
+    Query,
 )
 from starlette import status
 
@@ -26,20 +27,16 @@ logger = logging.getLogger(__name__)
 
 @router.post("/", response_model=PostRead)
 async def create_post(
-    post: Post,
-    current_user: CurrentUserDependency,
-    service: PostServiceDependency
+    post: Post, current_user: CurrentUserDependency, service: PostServiceDependency
 ):
-    return await service.create(
-        post, current_user
-    )
+    return await service.create(post, current_user)
 
 
 @router.get("/", response_model=PaginatedPosts)
 async def get_posts(
     current_user: CurrentUserDependency,
     service: PostServiceDependency,
-    filter_params: Annotated[PostFilterParams, Query()]
+    filter_params: Annotated[PostFilterParams, Query()],
 ):
     cache_key = await posts_page_key(filter_params)
     cached_page = await get_cached(cache_key)
@@ -57,16 +54,13 @@ async def search_posts(
     query: str,
     current_user: CurrentUserDependency,
     service: PostServiceDependency,
-
 ):
     return await service.search(query)
 
 
 @router.get("/{post_id}", response_model=PostRead)
 async def get_post(
-    post_id: int,
-    current_user: CurrentUserDependency,
-    service: PostServiceDependency
+    post_id: int, current_user: CurrentUserDependency, service: PostServiceDependency
 ):
     return await service.get_by_id(post_id)
 
@@ -76,20 +70,14 @@ async def update_post(
     post_id: int,
     post: PostUpdate,
     current_user: CurrentUserDependency,
-    service: PostServiceDependency
+    service: PostServiceDependency,
 ):
-    return await service.update_by_id(
-        post_id,
-        post,
-        current_user
-    )
+    return await service.update_by_id(post_id, post, current_user)
 
 
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_post(
-    post_id: int,
-    current_user: CurrentUserDependency,
-    service: PostServiceDependency
+    post_id: int, current_user: CurrentUserDependency, service: PostServiceDependency
 ):
     return await service.delete_by_id(post_id, current_user)
 
@@ -99,7 +87,7 @@ async def get_posts_comment(
     post_id: int,
     current_user: CurrentUserDependency,
     service: CommentServiceDependency,
-    filter_params: Annotated[CommentFilterParams, Query()]
+    filter_params: Annotated[CommentFilterParams, Query()],
 ):
     filter_params.post_id = post_id
     return await service.get_list(filter_params)

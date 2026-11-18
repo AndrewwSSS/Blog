@@ -1,11 +1,5 @@
 from datetime import datetime
-from sqlalchemy import (
-    Integer,
-    ForeignKey,
-    DateTime,
-    Boolean,
-    Text
-)
+from sqlalchemy import Integer, ForeignKey, DateTime, Boolean, Text
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship, Mapped
 from typing import TYPE_CHECKING
@@ -33,7 +27,9 @@ class CommentDB(BaseModel):
     post: Mapped["PostDB"] = relationship("PostDB", back_populates="comments")
 
     def __repr__(self) -> str:
-        return (f"<CommentDB(id={self.id}, "
-                f"owner_id={self.owner_id}, "
-                f"post_id={self.post_id}, "
-                f"is_blocked={self.is_blocked})>")
+        return (
+            f"<CommentDB(id={self.id}, "
+            f"owner_id={self.owner_id}, "
+            f"post_id={self.post_id}, "
+            f"is_blocked={self.is_blocked})>"
+        )

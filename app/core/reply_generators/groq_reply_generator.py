@@ -5,34 +5,31 @@ from app.core.reply_generators.base_ai_reply_generator import BaseAIReplyGenerat
 
 class GroqReplyGenerator(BaseAIReplyGenerator):
     MODEL = "llama3-8b-8192"
-    prompt = ("Generate reply for post with title: '{title}',and content: '{content}'."
-              "write only on post language, do not translate and always give only one answer")
+    prompt = (
+        "Generate reply for post with title: '{title}',and content: '{content}'."
+        "write only on post language, do not translate and always give only one answer"
+    )
 
     def _get_prompt(self, title: str, content: str) -> str:
         return self.prompt.format(title=title, content=content)
 
     async def generate_post_reply(self, title: str, content: str) -> str:
         from app.core.config import settings
+
         headers = {
             "Authorization": f"Bearer {settings.GROQ_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         body = {
             "model": self.MODEL,
-            "messages": [
-                {"role": "user", "content": self._get_prompt(
-                    title, content
-                )}
-            ],
-            "temperature": 0
+            "messages": [{"role": "user", "content": self._get_prompt(title, content)}],
+            "temperature": 0,
         }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers=headers,
-                json=body
+                "https://api.groq.com/openai/v1/chat/completions", headers=headers, json=body
             )
 
         if response.status_code == 200:

@@ -37,47 +37,25 @@ async def test_get_list_without_params(
         assert post in test_posts
 
 
-async def test_get_list_with_offset(
-    test_posts: [PostInDB],
-    session: AsyncSession
-):
-    repository = PostRepository(
-        session
-    )
-    posts_result = await repository.get_list(
-        offset=2
-    )
+async def test_get_list_with_offset(test_posts: [PostInDB], session: AsyncSession):
+    repository = PostRepository(session)
+    posts_result = await repository.get_list(offset=2)
 
     for ind, post in enumerate(posts_result):
         assert post == test_posts[ind + 2]
 
 
-async def test_get_list_with_limit(
-    test_posts: [PostInDB],
-    session: AsyncSession
-):
-    repository = PostRepository(
-        session
-    )
-    posts_result = await repository.get_list(
-        limit=1
-    )
+async def test_get_list_with_limit(test_posts: [PostInDB], session: AsyncSession):
+    repository = PostRepository(session)
+    posts_result = await repository.get_list(limit=1)
 
     assert len(posts_result) == 1
     assert posts_result[0] == test_posts[0]
 
 
-async def test_get_list_with_offset_and_limit(
-    test_posts: [PostInDB],
-    session: AsyncSession
-):
-    repository = PostRepository(
-        session
-    )
-    posts_result = await repository.get_list(
-        offset=1,
-        limit=2
-    )
+async def test_get_list_with_offset_and_limit(test_posts: [PostInDB], session: AsyncSession):
+    repository = PostRepository(session)
+    posts_result = await repository.get_list(offset=1, limit=2)
 
     assert len(posts_result) == 2
 
@@ -100,15 +78,10 @@ async def test_get_by_id(
     assert post.content == test_post.content
 
 
-async def test_get_by_ids(
-    test_posts: [PostInDB],
-    session: AsyncSession
-):
+async def test_get_by_ids(test_posts: [PostInDB], session: AsyncSession):
     posts_ids = [post.id for post in test_posts]
     repository = PostRepository(session)
-    result_posts = await repository.get_by_ids(
-        records_ids=posts_ids
-    )
+    result_posts = await repository.get_by_ids(records_ids=posts_ids)
 
     for post in result_posts:
         assert post in test_posts
@@ -123,9 +96,7 @@ async def test_update_by_id(
 
     repository = PostRepository(session)
     updated = await repository.update_by_id(
-        record_id=test_post.id,
-        content=new_content_value,
-        title=new_title_value
+        record_id=test_post.id, content=new_content_value, title=new_title_value
     )
 
     updated_post = await repository.get_by_id(test_post.id)
@@ -135,18 +106,13 @@ async def test_update_by_id(
     assert updated_post.content == new_content_value
     assert updated_post.title == new_title_value
 
-    not_updated_fields = updated_post.model_dump(
-        exclude={"content", "title"}
-    )
+    not_updated_fields = updated_post.model_dump(exclude={"content", "title"})
 
     for field, value in not_updated_fields.items():
         assert getattr(test_post, field) == value
 
 
-async def test_delete_by_id(
-    test_post: PostInDB,
-    session: AsyncSession
-):
+async def test_delete_by_id(test_post: PostInDB, session: AsyncSession):
     repository = PostRepository(session)
     deleted = await repository.delete_by_id(
         test_post.id,

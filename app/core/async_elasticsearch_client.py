@@ -10,17 +10,11 @@ logger = logging.getLogger(__name__)
 
 class AsyncElasticsearchClient:
     _client = None
-    _warm_query = {
-        "query": {
-            "match_all": {}
-        }
-    }
+    _warm_query = {"query": {"match_all": {}}}
 
     def __init__(self):
         if not AsyncElasticsearchClient._client:
-            AsyncElasticsearchClient._client = AsyncElasticsearch(
-                settings.ELASTICSEARCH_URL
-            )
+            AsyncElasticsearchClient._client = AsyncElasticsearch(settings.ELASTICSEARCH_URL)
         self._client = AsyncElasticsearchClient._client
 
     async def create_index(self, index_name: str, body: dict) -> bool:
@@ -36,36 +30,16 @@ class AsyncElasticsearchClient:
         params: dict,
     ) -> dict:
         return await self._client.search_template(
-            index=index_name,
-            body={
-                "id": search_template_id,
-                "params": params
-            }
+            index=index_name, body={"id": search_template_id, "params": params}
         )
 
     async def create_document(
-        self,
-        index_name: str,
-        document_id: str | int,
-        document: dict
+        self, index_name: str, document_id: str | int, document: dict
     ) -> None:
-        await self._client.index(
-            index=index_name,
-            id=document_id,
-            document=document
-        )
+        await self._client.index(index=index_name, id=document_id, document=document)
 
-    async def update_document(
-        self,
-        index_name: str,
-        document_id: int,
-        updated_document: dict
-    ):
-        await self._client.update(
-            index=index_name,
-            id=document_id,
-            body=updated_document
-        )
+    async def update_document(self, index_name: str, document_id: int, updated_document: dict):
+        await self._client.update(index=index_name, id=document_id, body=updated_document)
         await self._client.indices.refresh(index=index_name)
 
     async def delete_document(self, index_name: str, document_id: int):
@@ -76,13 +50,7 @@ class AsyncElasticsearchClient:
 
     async def create_or_update_script(self, script_id: str | int, body: str) -> object:
         return await self._client.put_script(
-            id=script_id,
-            body={
-                "script": {
-                    "lang": "mustache",
-                    "source": body
-                }
-            }
+            id=script_id, body={"script": {"lang": "mustache", "source": body}}
         )
 
     @classmethod
@@ -91,10 +59,7 @@ class AsyncElasticsearchClient:
         Perform a warm-up query on the specified index.
         """
         try:
-            response = await cls._client.search(
-                index=index_name,
-                body=cls._warm_query
-            )
+            response = await cls._client.search(index=index_name, body=cls._warm_query)
             logger.info(f"Warm query performed on index '{index_name}': {response}")
             return response
         except Exception as e:
@@ -112,6 +77,4 @@ class AsyncElasticsearchClient:
         if cls._client:
             logger.warning("Elasticsearch client already initialized")
             return
-        cls._client = AsyncElasticsearch(
-            settings.ELASTICSEARCH_URL
-        )
+        cls._client = AsyncElasticsearch(settings.ELASTICSEARCH_URL)

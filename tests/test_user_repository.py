@@ -12,15 +12,11 @@ async def test_create_user(
     repository = UserRepository(session)
 
     user_data = UserRegister(
-        username="testuser",
-        email="testuser@example.com",
-        password="password123"
+        username="testuser", email="testuser@example.com", password="password123"
     )
 
     created_user = await repository.create(
-        username="testuser",
-        email="testuser@example.com",
-        hashed_password="password123"
+        username="testuser", email="testuser@example.com", hashed_password="password123"
     )
 
     assert created_user.username == user_data.username
@@ -77,15 +73,9 @@ async def test_update_by_id(
 ):
     repository = UserRepository(session)
 
-    update_data = UserUpdate(
-        post_auto_reply=False,
-        reply_after=15
-    )
+    update_data = UserUpdate(post_auto_reply=False, reply_after=15)
 
-    updated = await repository.update_by_id(
-        record_id=test_user.id,
-        **update_data.model_dump()
-    )
+    updated = await repository.update_by_id(record_id=test_user.id, **update_data.model_dump())
 
     updated_user = await repository.get_by_id(test_user.id)
 

@@ -28,9 +28,7 @@ async def test_post_list_pages_with_filters(
     await PostRepository(session).update_by_id(own_posts[0].id, is_blocked=True)
     service = PostService(PostRepository(session))
 
-    page = await service.get_list(
-        PostFilterParams(owner_id=test_user.id, page=2, limit=2)
-    )
+    page = await service.get_list(PostFilterParams(owner_id=test_user.id, page=2, limit=2))
 
     assert page.total_pages == 2
     assert [post.id for post in page.items] == [own_posts[3].id, own_posts[4].id]
@@ -61,9 +59,7 @@ async def test_comment_list_pages_by_post(
     await create_comment(test_user.id, other_post.id)
     service = CommentService(CommentRepository(session))
 
-    page = await service.get_list(
-        CommentFilterParams(post_id=test_post.id, page=2, limit=2)
-    )
+    page = await service.get_list(CommentFilterParams(post_id=test_post.id, page=2, limit=2))
 
     assert page.total_pages == 2
     assert [comment.id for comment in page.items] == [comments[2].id]

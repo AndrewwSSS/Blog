@@ -6,8 +6,7 @@ from app.core.config import settings
 class AsyncKafkaProducer:
     _producer: AIOKafkaProducer | None = None
 
-    class ProducerNotInitialized(Exception):
-        ...
+    class ProducerNotInitialized(Exception): ...
 
     @classmethod
     async def init(cls):
@@ -15,9 +14,7 @@ class AsyncKafkaProducer:
             return None
 
         producer = AIOKafkaProducer(
-            bootstrap_servers=settings.KAFKA_URL,
-            retry_backoff_ms=100,
-            acks="all"
+            bootstrap_servers=settings.KAFKA_URL, retry_backoff_ms=100, acks="all"
         )
         try:
             await producer.start()

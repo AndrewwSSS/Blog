@@ -28,7 +28,9 @@ class PostDB(BaseModel):
     )
 
     def __repr__(self) -> str:
-        return (f"<PostDB(id={self.id}, "
-                f"title={self.title}, "
-                f"owner_id={self.owner_id}, "
-                f"is_blocked={self.is_blocked})>")
+        return (
+            f"<PostDB(id={self.id}, "
+            f"title={self.title}, "
+            f"owner_id={self.owner_id}, "
+            f"is_blocked={self.is_blocked})>"
+        )

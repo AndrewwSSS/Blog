@@ -39,9 +39,9 @@ class PostRepository(AsyncDatabaseRepository):
         date_to: datetime = None,
         owner_id: int = None,
     ) -> list[PostInDB]:
-        query = self._apply_filters(
-            select(PostDB), date_from, date_to, owner_id
-        ).order_by(PostDB.id)
+        query = self._apply_filters(select(PostDB), date_from, date_to, owner_id).order_by(
+            PostDB.id
+        )
 
         if offset:
             query = query.offset(offset)
@@ -51,10 +51,7 @@ class PostRepository(AsyncDatabaseRepository):
         result = await self.session.execute(query)
         posts = result.scalars().all()
 
-        return [
-            PostInDB.model_validate(post)
-            for post in posts
-        ]
+        return [PostInDB.model_validate(post) for post in posts]
 
     async def count_list(
         self,
@@ -80,17 +77,12 @@ class PostRepository(AsyncDatabaseRepository):
 
         logger.debug(f"Search results: {search_results}")
 
-        ordered_ids = [
-            int(item["_id"])
-            for item in search_results["hits"]["hits"]
-        ]
+        ordered_ids = [int(item["_id"]) for item in search_results["hits"]["hits"]]
 
         if not ordered_ids:
             return []
 
-        posts = await self.get_by_ids(
-           ordered_ids
-        )
+        posts = await self.get_by_ids(ordered_ids)
 
         id_to_post = {post.id: post for post in posts if not post.is_blocked}
 

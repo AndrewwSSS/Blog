@@ -67,23 +67,18 @@ async def run_delete_post_document(post_id: int):
 
 async def run_update_post_document(post_id: int):
     from app.services.post_service import PostRepository
+
     async with async_session() as session:
         post_repo = PostRepository(session)
-        post = await post_repo.get_by_id(
-            post_id
-        )
+        post = await post_repo.get_by_id(post_id)
         if not post:
-            logger.error(
-                f"Post with id {post_id} not found"
-            )
+            logger.error(f"Post with id {post_id} not found")
             return
         es_repo = AsyncElasticsearchClient()
         response = await es_repo.update_document(
             index_name="posts",
             document_id=post_id,
-            updated_document={
-                "doc": post.dict(exclude_none=True)
-            }
+            updated_document={"doc": post.dict(exclude_none=True)},
         )
         logger.info(f"Update response: {response}")
 
@@ -94,9 +89,7 @@ async def run_post_validation(post_id: int):
     async with async_session() as session:
         post_repo = PostRepository(session)
         post_service = PostService(post_repo)
-        await post_service.validate_content(
-            post_id
-        )
+        await post_service.validate_content(post_id)
 
 
 async def run_comment_validation(comment_id: int):
@@ -105,22 +98,17 @@ async def run_comment_validation(comment_id: int):
     async with async_session() as session:
         comment_repo = CommentRepository(session)
         comment_service = CommentService(comment_repo)
-        await comment_service.validate_content(
-            comment_id
-        )
+        await comment_service.validate_content(comment_id)
 
 
 async def run_adding_post_to_elastic_search(post_id: int):
     from app.services.post_service import PostRepository
+
     async with async_session() as session:
         post_repo = PostRepository(session)
-        post = await post_repo.get_by_id(
-            post_id
-        )
+        post = await post_repo.get_by_id(post_id)
         if not post:
-            logger.error(
-                "Post not found in database"
-            )
+            logger.error("Post not found in database")
             return
         es_repo = AsyncElasticsearchClient()
 
@@ -132,7 +120,7 @@ async def run_adding_post_to_elastic_search(post_id: int):
                 "title": post.title,
                 "content": post.content,
                 "date_posted": post.date_posted,
-            }
+            },
         )
 
 
@@ -147,7 +135,8 @@ async def _create_reply_for_post(post_id: int) -> None:
             return
         reply_generator = settings.REPLY_GENERATOR_CLASS()
         reply_content = await reply_generator.generate_post_reply(
-            post.title, post.content,
+            post.title,
+            post.content,
         )
 
         comment_repo = CommentRepository(session)

@@ -13,20 +13,16 @@ from app.services.post_service import PostService
 from app.services.user_service import UserService
 
 
-def get_user_service(
-    city_repository: UserRepository = Depends(get_user_repository)
-) -> UserService:
+def get_user_service(city_repository: UserRepository = Depends(get_user_repository)) -> UserService:
     return UserService(city_repository)
 
 
-def get_post_service(
-    post_repository: PostRepository = Depends(get_post_repository)
-) -> PostService:
+def get_post_service(post_repository: PostRepository = Depends(get_post_repository)) -> PostService:
     return PostService(post_repository)
 
 
 def get_comment_service(
-    comment_repository: CommentRepository = Depends(get_comment_repository)
+    comment_repository: CommentRepository = Depends(get_comment_repository),
 ) -> CommentService:
     return CommentService(comment_repository)
 

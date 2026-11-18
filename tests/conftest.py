@@ -96,7 +96,4 @@ async def test_comment(test_post) -> CommentInDB:
 
 @pytest.fixture
 async def test_comments(test_post, test_user) -> list[CommentInDB]:
-    return [
-        await create_comment(test_user.id, test_post.id)
-        for _ in range(random.randint(3, 5))
-    ]
+    return [await create_comment(test_user.id, test_post.id) for _ in range(random.randint(3, 5))]

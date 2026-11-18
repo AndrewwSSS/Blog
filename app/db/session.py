@@ -8,11 +8,7 @@ engine = create_async_engine(SQLALCHEMY_DATABASE_URL, future=True)
 
 # noinspection PyTypeChecker
 async_session = sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False
+    bind=engine, class_=AsyncSession, autocommit=False, autoflush=False, expire_on_commit=False
 )
 
 
