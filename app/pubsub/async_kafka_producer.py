@@ -14,12 +14,17 @@ class AsyncKafkaProducer:
         if cls._producer:
             return None
 
-        cls._producer = AIOKafkaProducer(
+        producer = AIOKafkaProducer(
             bootstrap_servers=settings.KAFKA_URL,
             retry_backoff_ms=100,
             acks="all"
         )
-        await cls._producer.start()
+        try:
+            await producer.start()
+        except Exception:
+            await producer.stop()
+            raise
+        cls._producer = producer
 
     @classmethod
     async def stop(cls):
@@ -27,6 +32,7 @@ class AsyncKafkaProducer:
             return None
 
         await cls._producer.stop()
+        cls._producer = None
 
     @classmethod
     async def publish(

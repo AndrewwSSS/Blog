@@ -1,11 +1,7 @@
 import logging
 
 from elasticsearch import AsyncElasticsearch
-from elasticsearch.exceptions import (
-    NotFoundError,
-    ConnectionError,
-    RequestError,
-)
+from elasticsearch.exceptions import NotFoundError
 
 from app.core.config import settings
 
@@ -46,21 +42,13 @@ class AsyncElasticsearchClient:
         search_template_id: str,
         params: dict,
     ) -> dict:
-        try:
-            return await self._client.search_template(
-                index=index_name,
-                body={
-                    "id": search_template_id,
-                    "params": params
-                }
-            )
-        except (NotFoundError, ConnectionError, RequestError) as e:
-            logger.error(
-                f"Error while searching by search template: {search_template_id}, "
-                f"params: {params}. "
-                f"index_name: {index_name}"
-                f"{e}"
-            )
+        return await self._client.search_template(
+            index=index_name,
+            body={
+                "id": search_template_id,
+                "params": params
+            }
+        )
 
     async def create_document(
         self,

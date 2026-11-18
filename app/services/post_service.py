@@ -1,5 +1,6 @@
 import logging
 
+from elasticsearch import ApiError, TransportError
 from fastapi import HTTPException
 from starlette import status
 
@@ -11,7 +12,7 @@ from app.schemas.post import (
     Post,
     PostUpdate,
     PostInDB,
-    PostRead, PaginatedPosts, PostFilterParams
+    PaginatedPosts, PostFilterParams
 )
 from app.schemas.user import UserInDB
 from app.celery.tasks import (
@@ -144,5 +145,12 @@ class PostService:
             await invalidate_posts_cache()
             logger.info(f"Post {post.id} is_blocked set to {should_block}")
 
-    async def search(self, query: str) -> [PostRead]:
-        return await self.repository.search(query)
+    async def search(self, query: str) -> list[PostInDB]:
+        try:
+            return await self.repository.search(query)
+        except (ApiError, TransportError):
+            logger.exception("Elasticsearch search failed")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Search is temporarily unavailable",
+            )

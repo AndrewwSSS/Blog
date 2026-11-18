@@ -1,3 +1,4 @@
+import asyncio
 import html
 import logging
 import smtplib
@@ -13,19 +14,19 @@ logger = logging.getLogger(__name__)
 class EmailService:
     def __init__(self, user: UserInDB) -> None:
         self.user = user
-        self.smtp_server = smtplib.SMTP(
-            settings.SMTP_HOST,
-            settings.SMTP_PORT
-        )
-        self.smtp_server.starttls()
-        self.smtp_server.login(settings.SMTP_USER, settings.SMTP_USER_PASSWORD)
+
+    def _send_mail_sync(self, message: MIMEMultipart) -> dict:
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as smtp_server:
+            smtp_server.starttls()
+            smtp_server.login(settings.SMTP_USER, settings.SMTP_USER_PASSWORD)
+            return smtp_server.sendmail(
+                settings.SMTP_USER,
+                self.user.email,
+                message.as_string()
+            )
 
     async def _send_mail(self, message: MIMEMultipart) -> dict:
-        return self.smtp_server.sendmail(
-            settings.SMTP_USER,
-            self.user.email,
-            message.as_string()
-        )
+        return await asyncio.to_thread(self._send_mail_sync, message)
 
     async def send_welcome_email(self):
         message = self._generate_welcome_email()
@@ -52,7 +53,7 @@ class EmailService:
         message = MIMEMultipart("alternative")
         message["From"] = settings.SMTP_USER
         message["To"] = self.user.email
-        message["Subject"] = "Welcome to Blog service"
+        message["Subject"] = "Account verification"
 
         part = MIMEText(
             self._generate_verification_email_html(verification_url),
@@ -66,7 +67,7 @@ class EmailService:
         message = MIMEMultipart("alternative")
         message["From"] = settings.SMTP_USER
         message["To"] = self.user.email
-        message["Subject"] = "Account verification"
+        message["Subject"] = "Welcome to Blog service"
 
         part = MIMEText(
             self._generate_welcome_email_html(),

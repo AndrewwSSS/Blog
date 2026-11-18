@@ -90,22 +90,7 @@ async def test_authenticate_returns_user_for_correct_password():
     assert result == user
 
 
-class FakeSMTP:
-    def __init__(self, *args, **kwargs) -> None:
-        self.debuglevel = 0
-
-    def set_debuglevel(self, level) -> None:
-        self.debuglevel = level
-
-    def starttls(self) -> None:
-        pass
-
-    def login(self, user, password) -> None:
-        pass
-
-
-def test_email_html_escapes_username(monkeypatch):
-    monkeypatch.setattr(mail_service.smtplib, "SMTP", FakeSMTP)
+def test_email_html_escapes_username():
     service = mail_service.EmailService(
         make_user(username='<img src=x onerror="alert(1)">')
     )
@@ -117,4 +102,3 @@ def test_email_html_escapes_username(monkeypatch):
     assert "&lt;img" in welcome
     assert "<img" not in verification
     assert 'href="http://x/?a=1&amp;b=2"' in verification
-    assert service.smtp_server.debuglevel == 0
