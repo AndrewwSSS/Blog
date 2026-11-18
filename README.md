@@ -23,8 +23,8 @@ This is a simple API built for managing blog posts and comments, featuring autom
 ## Getting Started
 
 ### Requirements
-- Docker
-- Dokcer-compose
+- Docker with Docker Compose v2
+- make
   
 ### Installation
 1. Clone the repository:
@@ -66,14 +66,29 @@ OPENAI_API_KEY - https://platform.openai.com/api-keys
 ### Running
 
 ```bash
-docker-compose up --build -d
+make up         # start the stack in the background
+make up-debug   # also start Flower (http://localhost:5555) and Kibana (http://localhost:5601)
+make logs s=api # follow the logs of one service
+make down       # stop everything (data volumes are kept)
 ```
 
-### Testing
+The API is available at http://localhost:8000/docs. All ports are bound to localhost only.
 
-Before running test you should run docker services(described in Running section)
+### Testing and linting
+
+Tests use SQLite and fake Redis, so they need no running services:
 
 ```bash
-docker exec api pytest tests/  
+make test-local  # run tests with Poetry
+make lint        # check code with ruff
+make format      # format code with ruff
 ```
+
+Or run the tests inside the running API container:
+
+```bash
+make test
+```
+
+Run `make` to see all commands.
 

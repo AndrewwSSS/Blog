@@ -2,7 +2,7 @@ COMPOSE ?= docker compose
 API     ?= api
 
 .DEFAULT_GOAL := help
-.PHONY: help env install build up down restart ps logs shell test test-local lint format migrate migration clean
+.PHONY: help env install build up up-debug down restart ps logs shell test test-local lint format migrate migration clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -19,8 +19,11 @@ build: ## Build the Docker images
 up: ## Start all services in the background
 	$(COMPOSE) up --build -d
 
-down: ## Stop all services (keeps volumes and data)
-	$(COMPOSE) down
+up-debug: ## Start all services plus Flower (:5555) and Kibana (:5601)
+	$(COMPOSE) --profile debug up --build -d
+
+down: ## Stop all services, including debug tools (keeps volumes and data)
+	$(COMPOSE) --profile debug down
 
 restart: down up ## Restart all services
 

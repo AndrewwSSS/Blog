@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -18,8 +18,7 @@ RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi --no-root
 
 RUN addgroup --system appgroup && adduser --system --group appuser
-RUN chown -R appuser:appgroup /app
+
+COPY --chown=appuser:appgroup . .
 
 USER appuser
-
-COPY . .
