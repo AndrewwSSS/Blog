@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     SECRET_KEY: str
     EMAIL_TOKEN_SALT: str
+    EMAIL_TOKEN_EXPIRE_HOURS: int = 24
     ALGORITHM: str = "HS256"
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30

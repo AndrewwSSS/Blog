@@ -7,7 +7,11 @@ from sqlalchemy.exc import IntegrityError
 from app.core.auth.utils import create_access_token
 from app.core.auth.utils import create_refresh_token
 from app.core.auth.utils import verify_token
-from app.core.security import verify_password, get_password_hash
+from app.core.security import (
+    dummy_verify_password,
+    get_password_hash,
+    verify_password,
+)
 from app.repositories.user_repository import UserRepository
 from app.schemas.jwt import LoginResponse, TokenRefreshResponse
 from app.schemas.user import UserRegister, UserLoginRequest
@@ -69,12 +73,13 @@ class UserService:
         user_db = await self.repository.get_by_username(
             user.username
         )
-        if not user_db:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-            )
+        if user_db:
+            password_ok = verify_password(user.password, user_db.hashed_password)
+        else:
+            dummy_verify_password()
+            password_ok = False
 
-        if not verify_password(user.password, user_db.hashed_password):
+        if not password_ok:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password"

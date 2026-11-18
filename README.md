@@ -48,10 +48,11 @@ Test data(api keys can be expired):
    POSTGRES_DB=test
    POSTGRES_HOST=localhost
    
-   SECRET_KEY=4fdsm4f782mdreDssknmf38ss02dltdSD
+   SECRET_KEY=<output of: python -c "import secrets; print(secrets.token_urlsafe(32))">
+   EMAIL_TOKEN_SALT=<another random string>
    
-   OPENAI_API_KEY=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
-   GROQ_API_KEY=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
+   OPENAI_API_KEY=<your-openai-api-key>
+   GROQ_API_KEY=<your-groq-api-key>
    
    TEST_DB_PORT=6000
    TEST_DB_USER=test_user

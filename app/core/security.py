@@ -20,6 +20,7 @@ def verify_verification_token(token: str) -> str | None:
         email = serializer.loads(
             token,
             salt=settings.EMAIL_TOKEN_SALT,
+            max_age=settings.EMAIL_TOKEN_EXPIRE_HOURS * 3600,
         )
         return email
     except (BadSignature, SignatureExpired):
@@ -28,6 +29,11 @@ def verify_verification_token(token: str) -> str | None:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
+
+def dummy_verify_password() -> None:
+    """Spend the same time as verify_password, to hide whether a user exists."""
+    pwd_context.dummy_verify()
 
 
 def get_password_hash(password: str) -> str:

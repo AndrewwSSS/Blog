@@ -1,3 +1,4 @@
+import html
 import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -16,7 +17,6 @@ class EmailService:
             settings.SMTP_HOST,
             settings.SMTP_PORT
         )
-        self.smtp_server.set_debuglevel(True)
         self.smtp_server.starttls()
         self.smtp_server.login(settings.SMTP_USER, settings.SMTP_USER_PASSWORD)
 
@@ -80,9 +80,9 @@ class EmailService:
         return f"""
             <html>
                 <body>
-                    <p>Hello {self.user.username},</p>
+                    <p>Hello {html.escape(self.user.username)},</p>
                     <p>Please verify your email address by clicking the link below:</p>
-                    <a href="{verification_url}">Verify Email</a>
+                    <a href="{html.escape(verification_url)}">Verify Email</a>
                 </body>
             </html>
         """
@@ -91,7 +91,7 @@ class EmailService:
         return f"""
             <html>
             <body>
-                <h1>Welcome, {self.user.username}!</h1>
+                <h1>Welcome, {html.escape(self.user.username)}!</h1>
                 <p>We're thrilled to have you join our Blog Service. Here's to creating and sharing amazing content together!</p>
                 <p>If you have any questions or need assistance, feel free to reach out to our support team.</p>
                 <br>
