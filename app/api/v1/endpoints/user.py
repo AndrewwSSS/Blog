@@ -3,9 +3,19 @@ from fastapi import APIRouter
 from app.core.auth.dependencies import CurrentUserDependency
 from app.dependencies.services import UserServiceDependency
 from app.schemas.jwt import LoginResponse, TokenRefreshResponse, TokenRefreshRequest
-from app.schemas.user import UserRegister, UserRead, UserLoginRequest, UserUpdate
+from app.schemas.user import (
+    UserLoginRequest,
+    UserRead,
+    UserRegister,
+    UserUpdate,
+    VerificationResendRequest,
+)
 
 router = APIRouter()
+
+VERIFICATION_RESEND_MESSAGE = (
+    "If this address belongs to an unverified account, a new verification email is on its way."
+)
 
 
 @router.post("/register", response_model=UserRead, status_code=201)
@@ -44,3 +54,11 @@ async def read_users_me(current_user: CurrentUserDependency, service: UserServic
 @router.get("/verification/{token}")
 async def verify_user(token: str, service: UserServiceDependency):
     return await service.verify_user(token)
+
+
+@router.post("/verification/resend", status_code=202)
+async def resend_verification_email(
+    request: VerificationResendRequest, service: UserServiceDependency
+) -> dict[str, str]:
+    await service.resend_verification(request.email)
+    return {"detail": VERIFICATION_RESEND_MESSAGE}

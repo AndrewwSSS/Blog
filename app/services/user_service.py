@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.auth.utils import create_access_token
 from app.core.auth.utils import create_refresh_token
 from app.core.auth.utils import verify_token
+from app.core.cache import acquire_cooldown
 from app.core.security import (
     dummy_verify_password,
     get_password_hash,
@@ -18,6 +19,8 @@ from app.schemas.user import UserRegister, UserLoginRequest
 from app.schemas.user import UserInDB
 from app.schemas.user import UserUpdate
 from app.core.security import verify_verification_token
+
+VERIFICATION_RESEND_COOLDOWN_SECONDS = 60
 
 
 class UserService:
@@ -148,3 +151,21 @@ class UserService:
         event = self.outbox.add("new-active-user", {"email": email})
         await self.repository.commit()
         await publish_now(self.outbox, [event])
+
+    async def resend_verification(self, email: str) -> None:
+        """Queue a new verification email for an unverified user.
+
+        Does nothing for unknown or already active addresses, so callers cannot
+        tell them apart. The outbox relay publishes the event; publishing it
+        inline would make the response slower only for existing accounts.
+        """
+        cooldown_key = f"verification-resend:{email.lower()}"
+        if not await acquire_cooldown(cooldown_key, VERIFICATION_RESEND_COOLDOWN_SECONDS):
+            return
+
+        user = await self.repository.get_by_email(email)
+        if not user or user.is_active:
+            return
+
+        self.outbox.add("new-user-registration", {"id": user.id})
+        await self.repository.commit()
