@@ -4,6 +4,8 @@ from typing import ClassVar, List
 from pydantic import BaseModel, Field, model_validator
 from pydantic import ConfigDict
 
+from app.schemas.types import UTCDatetime
+
 
 class CommentCreate(BaseModel):
     content: str
@@ -43,8 +45,8 @@ class CommentInDB(BaseModel):
 class CommentFilterParams(BaseModel):
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=5, ge=1, le=100)
-    date_from: datetime | None = None
-    date_to: datetime | None = None
+    date_from: UTCDatetime | None = None
+    date_to: UTCDatetime | None = None
     owner_id: int | None = Field(None, ge=1)
     post_id: int | None = Field(None, ge=1)
 

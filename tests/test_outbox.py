@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
@@ -165,7 +165,7 @@ async def test_relay_records_failure_and_continues(session):
 
 
 async def test_cleanup_deletes_only_old_published_events(session):
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     await add_events({"age": "old"}, published_at=now - timedelta(days=8))
     await add_events({"age": "recent"}, published_at=now - timedelta(days=1))
     await add_events({"age": "pending"})

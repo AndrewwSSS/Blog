@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.utils import utc_now
 from app.models import OutboxEventDB
 
 
@@ -29,7 +30,7 @@ class OutboxRepository:
         return list(result.scalars().all())
 
     async def mark_published(self, events: list[OutboxEventDB]) -> None:
-        now = datetime.utcnow()
+        now = utc_now()
         for event in events:
             event.published_at = now
         await self.session.commit()

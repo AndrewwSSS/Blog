@@ -1,8 +1,10 @@
 from datetime import datetime
-from sqlalchemy import Integer, String, ForeignKey, DateTime, Boolean, Text
+from sqlalchemy import Integer, String, ForeignKey, Boolean, Text
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 from typing import TYPE_CHECKING
+from app.core.utils import utc_now
 from app.db.base_model import BaseModel
+from app.db.types import UTCDateTime
 
 if TYPE_CHECKING:
     from app.models.user import UserDB
@@ -16,7 +18,7 @@ class PostDB(BaseModel):
     title: Mapped[str] = mapped_column(String, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    date_posted: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    date_posted: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now, nullable=False)
     owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
 
     owner: Mapped["UserDB"] = relationship("UserDB", back_populates="posts")

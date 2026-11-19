@@ -1,11 +1,12 @@
 import json
 import logging
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from aiokafka import AIOKafkaProducer
 
 from app.core.config import settings
+from app.core.utils import utc_now
 from app.models import OutboxEventDB
 from app.pubsub.async_kafka_producer import AsyncKafkaProducer
 from app.repositories.outbox_repository import OutboxRepository
@@ -80,4 +81,4 @@ async def relay_pending_events(
 
 
 async def delete_old_published_events(outbox: OutboxRepository) -> int:
-    return await outbox.delete_published_before(datetime.utcnow() - PUBLISHED_RETENTION)
+    return await outbox.delete_published_before(utc_now() - PUBLISHED_RETENTION)

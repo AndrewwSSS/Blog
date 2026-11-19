@@ -1,9 +1,11 @@
 from datetime import datetime
-from sqlalchemy import Integer, ForeignKey, DateTime, Boolean, Text
+from sqlalchemy import Integer, ForeignKey, Boolean, Text
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship, Mapped
 from typing import TYPE_CHECKING
+from app.core.utils import utc_now
 from app.db.base_model import BaseModel
+from app.db.types import UTCDateTime
 
 
 if TYPE_CHECKING:
@@ -21,7 +23,7 @@ class CommentDB(BaseModel):
     post_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False
     )
-    date_posted: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    date_posted: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now, nullable=False)
 
     owner: Mapped["UserDB"] = relationship("UserDB", back_populates="comments")
     post: Mapped["PostDB"] = relationship("PostDB", back_populates="comments")

@@ -4,7 +4,12 @@ from app.core.config import settings
 
 SQLALCHEMY_DATABASE_URL = settings.database_url
 
-engine = create_async_engine(SQLALCHEMY_DATABASE_URL, future=True)
+# Keeps SQL date() and casts of timestamptz columns in UTC, whatever the server default is.
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL,
+    future=True,
+    connect_args={"server_settings": {"timezone": "UTC"}},
+)
 
 # noinspection PyTypeChecker
 async_session = sessionmaker(
