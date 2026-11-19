@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
@@ -46,7 +46,7 @@ async def test_post_count_list_matches_filters(
 
     assert await repository.count_list() == 4
     assert await repository.count_list(owner_id=test_user.id) == 3
-    assert await repository.count_list(date_from=datetime.utcnow() + timedelta(days=1)) == 0
+    assert await repository.count_list(date_from=datetime.now(UTC) + timedelta(days=1)) == 0
 
 
 async def test_comment_list_pages_by_post(
@@ -72,7 +72,7 @@ async def test_comment_list_filters_by_date(
 ):
     await create_comment(test_user.id, test_post.id)
     repository = CommentRepository(session)
-    tomorrow = datetime.utcnow() + timedelta(days=1)
+    tomorrow = datetime.now(UTC) + timedelta(days=1)
 
     assert await repository.get_list(date_from=tomorrow) == []
     assert len(await repository.get_list(date_to=tomorrow)) == 1

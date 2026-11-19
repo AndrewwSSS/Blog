@@ -4,6 +4,8 @@ from typing import ClassVar, List
 from pydantic import BaseModel, model_validator, Field
 from pydantic import ConfigDict
 
+from app.schemas.types import UTCDatetime
+
 
 class Post(BaseModel):
     title: str
@@ -59,8 +61,8 @@ class PostFilterParams(BaseModel):
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=5, ge=1, le=100)
     owner_id: int | None = Field(default=None, ge=1)
-    date_from: datetime | None = None
-    date_to: datetime | None = None
+    date_from: UTCDatetime | None = None
+    date_to: UTCDatetime | None = None
 
     @model_validator(mode="after")
     def check_date_range(self):

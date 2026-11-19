@@ -1,9 +1,11 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Index, Integer, String, Text, text
+from sqlalchemy import JSON, Index, Integer, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.utils import utc_now
 from app.db.base_model import BaseModel
+from app.db.types import UTCDateTime
 
 
 class OutboxEventDB(BaseModel):
@@ -24,8 +26,8 @@ class OutboxEventDB(BaseModel):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     topic: Mapped[str] = mapped_column(String, nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now, nullable=False)
+    published_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
