@@ -45,12 +45,20 @@ def required_env(monkeypatch) -> None:
 class FakeRedis:
     def __init__(self) -> None:
         self.data: dict[str, bytes] = {}
+        self.expiry: dict[str, int] = {}
 
     async def get(self, key: str) -> bytes | None:
         return self.data.get(key)
 
-    async def set(self, key: str, value: str | bytes, ex: int | None = None) -> None:
+    async def set(
+        self, key: str, value: str | bytes, ex: int | None = None, nx: bool = False
+    ) -> bool | None:
+        if nx and key in self.data:
+            return None
         self.data[key] = value.encode() if isinstance(value, str) else value
+        if ex is not None:
+            self.expiry[key] = ex
+        return True
 
     async def incr(self, key: str) -> int:
         value = int(self.data.get(key, b"0")) + 1

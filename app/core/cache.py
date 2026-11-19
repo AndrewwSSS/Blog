@@ -51,3 +51,17 @@ async def invalidate_posts_cache() -> None:
         await redis.incr(POSTS_VERSION_KEY)
     except RedisError as e:
         logger.warning(f"Redis unavailable, posts cache not invalidated: {e}")
+
+
+async def acquire_cooldown(key: str, seconds: int) -> bool:
+    """Hold `key` for `seconds` if it is free.
+
+    Returns True when the caller got the key, False when it is already held.
+    A Redis error also returns False, so a rate-limited action is skipped
+    rather than allowed without a limit.
+    """
+    try:
+        return bool(await redis.set(key, "1", nx=True, ex=seconds))
+    except RedisError as e:
+        logger.warning(f"Redis unavailable, cooldown {key} not acquired: {e}")
+        return False

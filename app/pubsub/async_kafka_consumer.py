@@ -5,6 +5,7 @@ import logging
 from aiokafka import AIOKafkaConsumer
 
 from app.core.config import settings
+from app.core.security import generate_email_verification_token
 from app.pubsub.services.mail_service import EmailService
 from app.repositories.user_repository import UserRepository
 from app.db.session import async_session
@@ -79,7 +80,6 @@ class AsyncKafkaConsumer:
     async def _handle_new_user_registration(self, message) -> None:
         payload = json.loads(message.value.decode("utf-8"))
         user_id = int(payload["id"])
-        verification_url = payload["verification_url"]
 
         async with async_session() as session:
             user_repo = UserRepository(session)
@@ -91,8 +91,9 @@ class AsyncKafkaConsumer:
                 logger.info(f"User {user.username} is already verified")
                 return
 
+            token = generate_email_verification_token(user.email)
             is_sent = await EmailService(user).send_verification_email(
-                verification_url=verification_url
+                verification_url=f"{settings.email_verification_url_prefix}{token}"
             )
             if is_sent:
                 logger.info(f"User {user.username} got verification email")

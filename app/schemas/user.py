@@ -19,6 +19,10 @@ class UserLoginRequest(BaseModel):
     password: str
 
 
+class VerificationResendRequest(BaseModel):
+    email: EmailStr
+
+
 class UserRead(BaseModel):
     id: int
     post_auto_reply: bool

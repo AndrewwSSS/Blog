@@ -1,30 +1,32 @@
 from fastapi import HTTPException, status
 from jwt import InvalidTokenError
-import json
-
 from sqlalchemy.exc import IntegrityError
 
 from app.core.auth.utils import create_access_token
 from app.core.auth.utils import create_refresh_token
 from app.core.auth.utils import verify_token
-from app.core.config import settings
+from app.core.cache import acquire_cooldown
 from app.core.security import (
     dummy_verify_password,
     get_password_hash,
     verify_password,
 )
+from app.pubsub.outbox import publish_now
+from app.repositories.outbox_repository import OutboxRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.jwt import LoginResponse, TokenRefreshResponse
 from app.schemas.user import UserRegister, UserLoginRequest
 from app.schemas.user import UserInDB
 from app.schemas.user import UserUpdate
-from app.pubsub.async_kafka_producer import AsyncKafkaProducer
-from app.core.security import verify_verification_token, generate_email_verification_token
+from app.core.security import verify_verification_token
+
+VERIFICATION_RESEND_COOLDOWN_SECONDS = 60
 
 
 class UserService:
-    def __init__(self, user_repository: UserRepository):
+    def __init__(self, user_repository: UserRepository, outbox_repository: OutboxRepository):
         self.repository = user_repository
+        self.outbox = outbox_repository
 
     async def create(self, user: UserRegister) -> UserInDB:
         try:
@@ -32,27 +34,18 @@ class UserService:
                 username=user.username,
                 hashed_password=get_password_hash(user.password),
                 email=user.email,
+                commit=False,
             )
         except IntegrityError as e:
+            await self.repository.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User with this username or email already exists.",
             ) from e
-        verification_token = generate_email_verification_token(
-            created_user.email,
-        )
-        payload = json.dumps(
-            {
-                "id": created_user.id,
-                "verification_url": (
-                    f"{settings.email_verification_url_prefix}{verification_token}"
-                ),
-            }
-        )
-        await AsyncKafkaProducer.publish(
-            "new-user-registration",
-            payload,
-        )
+
+        event = self.outbox.add("new-user-registration", {"id": created_user.id})
+        await self.repository.commit()
+        await publish_now(self.outbox, [event])
         return created_user
 
     async def get_by_id(self, user_id: int) -> UserInDB:
@@ -154,5 +147,25 @@ class UserService:
                 status_code=status.HTTP_400_BAD_REQUEST, detail="User is already active"
             )
 
-        await self.repository.update_by_id(record_id=user.id, is_active=True)
-        await AsyncKafkaProducer.publish(topic="new-active-user", data=json.dumps({"email": email}))
+        await self.repository.update_by_id(record_id=user.id, is_active=True, commit=False)
+        event = self.outbox.add("new-active-user", {"email": email})
+        await self.repository.commit()
+        await publish_now(self.outbox, [event])
+
+    async def resend_verification(self, email: str) -> None:
+        """Queue a new verification email for an unverified user.
+
+        Does nothing for unknown or already active addresses, so callers cannot
+        tell them apart. The outbox relay publishes the event; publishing it
+        inline would make the response slower only for existing accounts.
+        """
+        cooldown_key = f"verification-resend:{email.lower()}"
+        if not await acquire_cooldown(cooldown_key, VERIFICATION_RESEND_COOLDOWN_SECONDS):
+            return
+
+        user = await self.repository.get_by_email(email)
+        if not user or user.is_active:
+            return
+
+        self.outbox.add("new-user-registration", {"id": user.id})
+        await self.repository.commit()
