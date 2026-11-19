@@ -5,13 +5,35 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from tenacity import (
+    AsyncRetrying,
+    before_sleep_log,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
+
 from app.core.config import settings
 from app.schemas.user import UserInDB
 
 logger = logging.getLogger(__name__)
 
 
+def is_transient_smtp_error(error: BaseException) -> bool:
+    """Network failures and 4xx replies are worth retrying; other SMTP errors are not."""
+    if isinstance(error, (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected)):
+        return True
+    if isinstance(error, smtplib.SMTPResponseException):
+        return 400 <= error.smtp_code < 500
+    if isinstance(error, smtplib.SMTPException):
+        return False
+    return isinstance(error, OSError)
+
+
 class EmailService:
+    SEND_ATTEMPTS = 3
+    retry_wait = wait_exponential(multiplier=1, max=10)
+
     def __init__(self, user: UserInDB) -> None:
         self.user = user
 
@@ -22,7 +44,15 @@ class EmailService:
             return smtp_server.sendmail(settings.SMTP_USER, self.user.email, message.as_string())
 
     async def _send_mail(self, message: MIMEMultipart) -> dict:
-        return await asyncio.to_thread(self._send_mail_sync, message)
+        async for attempt in AsyncRetrying(
+            stop=stop_after_attempt(self.SEND_ATTEMPTS),
+            wait=self.retry_wait,
+            retry=retry_if_exception(is_transient_smtp_error),
+            before_sleep=before_sleep_log(logger, logging.WARNING),
+            reraise=True,
+        ):
+            with attempt:
+                return await asyncio.to_thread(self._send_mail_sync, message)
 
     async def send_welcome_email(self):
         message = self._generate_welcome_email()
