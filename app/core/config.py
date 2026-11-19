@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str
     POSTGRES_PORT: int = 5432
 
+    # Tests drop all tables; a PostgreSQL test database name must end with "_test".
+    TEST_DATABASE_URL: str = "sqlite+aiosqlite:///./test_database.db"
+
     ELASTICSEARCH_URL: str = "http://elasticsearch:9200"
 
     PUBLIC_BASE_URL: str = "http://127.0.0.1:8000"
@@ -57,10 +60,6 @@ class Settings(BaseSettings):
     @property
     def email_verification_url_prefix(self) -> str:
         return f"{self.PUBLIC_BASE_URL.rstrip('/')}/api/v1/users/verification/"
-
-    @property
-    def test_database_url(self) -> str:
-        return "sqlite+aiosqlite:///./test_database.db"
 
     @property
     def celery_broker_url(self) -> str:

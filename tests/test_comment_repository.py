@@ -1,5 +1,5 @@
 from datetime import timedelta
-from datetime import date
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -100,11 +100,9 @@ async def test_get_comments_analytics(
     test_post: PostInDB,
     session: AsyncSession,
 ):
-    await create_comment(test_post.id, test_post.owner_id)
-    await create_comment(test_post.id, test_post.owner_id)
-    await create_comment(test_post.id, test_post.owner_id)
-    await create_comment(test_post.id, test_post.owner_id)
-    today = date.today()
+    for _ in range(4):
+        await create_comment(test_post.owner_id, test_post.id)
+    today = datetime.now(UTC).date()
 
     repository = CommentRepository(session)
     analytics = await repository.get_analytics(
@@ -115,7 +113,7 @@ async def test_get_comments_analytics(
     assert len(analytics) == 1
     record = analytics[0]
 
-    assert record[0] == today.strftime("%Y-%m-%d")
+    assert record[0] == today
     assert record[1] == 4  # message count
     assert record[2] == 0  # blocked messages count
 

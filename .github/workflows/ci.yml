@@ -12,23 +12,24 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  POETRY_VERSION: "2.4.1"
+  # Dummy values: tests use a fake Redis and no real secrets. POSTGRES_* also point
+  # Alembic at the PostgreSQL service in the test-postgres job.
+  POSTGRES_USER: ci
+  POSTGRES_PASSWORD: ci
+  POSTGRES_DB: blog_test
+  POSTGRES_HOST: localhost
+  SECRET_KEY: ci-secret-key
+  EMAIL_TOKEN_SALT: ci-email-salt
+  KAFKA_URL: localhost:9092
+  SMTP_USER: ci@example.com
+  SMTP_USER_PASSWORD: ci
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    env:
-      POETRY_VERSION: "2.4.1"
-      # Dummy values: tests use SQLite and a fake Redis, no real services or secrets.
-      POSTGRES_USER: ci
-      POSTGRES_PASSWORD: ci
-      POSTGRES_DB: ci
-      POSTGRES_HOST: localhost
-      SECRET_KEY: ci-secret-key
-      EMAIL_TOKEN_SALT: ci-email-salt
-      KAFKA_URL: localhost:9092
-      SMTP_USER: ci@example.com
-      SMTP_USER_PASSWORD: ci
 
     steps:
       - uses: actions/checkout@v4
@@ -56,4 +57,54 @@ jobs:
         run: poetry run ruff format --check .
 
       - name: Test
+        run: poetry run pytest tests/
+
+  test-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: blog_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d blog_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://ci:ci@localhost:5432/blog_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pip install "poetry==${POETRY_VERSION}"
+
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: poetry-${{ runner.os }}-py3.12-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Migrations upgrade, match the models, and downgrade
+        run: |
+          poetry run alembic upgrade head
+          poetry run alembic check
+          poetry run alembic downgrade base
+
+      - name: Test on PostgreSQL
         run: poetry run pytest tests/
