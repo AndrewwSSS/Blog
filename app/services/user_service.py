@@ -9,6 +9,7 @@ from app.core.cache import acquire_cooldown
 from app.core.security import (
     dummy_verify_password,
     get_password_hash,
+    password_needs_rehash,
     verify_password,
 )
 from app.pubsub.outbox import publish_now
@@ -68,6 +69,11 @@ class UserService:
         if not password_ok:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password"
+            )
+
+        if password_needs_rehash(user_db.hashed_password):
+            await self.repository.update_by_id(
+                record_id=user_db.id, hashed_password=get_password_hash(user.password)
             )
 
         if not user_db.is_active:
