@@ -12,6 +12,7 @@ from app.repositories.comment_repository import CommentRepository
 from app.repositories.outbox_repository import OutboxRepository
 from app.repositories.post_repository import PostRepository
 from app.schemas.comment import CommentCreate
+from app.services.moderation import moderate_comment, moderate_post
 
 
 celery = Celery(
@@ -106,8 +107,6 @@ async def run_delete_post_document(post_id: int):
 
 
 async def run_update_post_document(post_id: int):
-    from app.services.post_service import PostRepository
-
     async with async_session() as session:
         post_repo = PostRepository(session)
         post = await post_repo.get_by_id(post_id)
@@ -124,26 +123,16 @@ async def run_update_post_document(post_id: int):
 
 
 async def run_post_validation(post_id: int):
-    from app.services.post_service import PostService
-
     async with async_session() as session:
-        post_repo = PostRepository(session)
-        post_service = PostService(post_repo)
-        await post_service.validate_content(post_id)
+        await moderate_post(PostRepository(session), post_id)
 
 
 async def run_comment_validation(comment_id: int):
-    from app.services.comment_service import CommentService
-
     async with async_session() as session:
-        comment_repo = CommentRepository(session)
-        comment_service = CommentService(comment_repo)
-        await comment_service.validate_content(comment_id)
+        await moderate_comment(CommentRepository(session), comment_id)
 
 
 async def run_adding_post_to_elastic_search(post_id: int):
-    from app.services.post_service import PostRepository
-
     async with async_session() as session:
         post_repo = PostRepository(session)
         post = await post_repo.get_by_id(post_id)

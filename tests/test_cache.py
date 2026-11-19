@@ -6,8 +6,7 @@ from app.core import cache
 from app.core.validation.base_content_validator import BaseContentValidator
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import PaginatedPosts, PostFilterParams, PostInDB
-from app.services import post_service
-from app.services.post_service import PostService
+from app.services import moderation
 
 
 class CountingPostService:
@@ -87,9 +86,9 @@ async def test_blocking_a_post_invalidates_cache(
         async def validate_comment(self, content: str) -> bool:
             return False
 
-    monkeypatch.setattr(post_service, "get_content_validator", RejectAllValidator)
+    monkeypatch.setattr(moderation, "get_content_validator", RejectAllValidator)
     key_before = await cache.posts_page_key(PostFilterParams())
 
-    await PostService(PostRepository(session)).validate_content(test_post.id)
+    await moderation.moderate_post(PostRepository(session), test_post.id)
 
     assert await cache.posts_page_key(PostFilterParams()) != key_before
