@@ -119,6 +119,20 @@ services:
       api_prestart:
         condition: service_completed_successfully
 
+  celery-beat:
+    build:
+      context: .
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+    env_file:
+      - .env
+    command: celery -A app.celery.tasks:celery beat -l INFO --schedule /tmp/celerybeat-schedule
+    container_name: celery-beat
+    depends_on:
+      - redis
+      - celery
+
   # Debugging tools, started only with `make up-debug`.
   flower:
     build:

@@ -39,7 +39,7 @@ class AsyncDatabaseRepository(ABC):
 
         return result.rowcount == 1
 
-    async def update_by_id(self, record_id: int, **fields) -> bool:
+    async def update_by_id(self, record_id: int, commit: bool = True, **fields) -> bool:
         query = (
             update(self.model)
             .where(self.model.id == record_id)
@@ -48,18 +48,30 @@ class AsyncDatabaseRepository(ABC):
         )
 
         result = await self.session.execute(query)
-        await self.session.commit()
+        if commit:
+            await self.session.commit()
 
         return result.rowcount == 1
 
-    async def create(self, **data) -> Type[BaseModel]:
+    async def create(self, commit: bool = True, **data) -> Type[BaseModel]:
+        """Insert a record. With commit=False it is only flushed (it gets an id),
+        so the caller can add more changes and commit them together."""
         record = self.model(**data)
 
         self.session.add(record)
-        await self.session.commit()
+        if commit:
+            await self.session.commit()
+        else:
+            await self.session.flush()
         await self.session.refresh(record)
 
         return self.pydantic_model.model_validate(record)
+
+    async def commit(self) -> None:
+        await self.session.commit()
+
+    async def rollback(self) -> None:
+        await self.session.rollback()
 
     async def get_by_ids(self, records_ids: Iterable[int]) -> Type[BaseModel]:
         query = select(self.model).where(self.model.id.in_(records_ids))

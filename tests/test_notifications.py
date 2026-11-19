@@ -5,6 +5,8 @@ import pytest
 from elastic_transport import ConnectionError as ElasticConnectionError
 from fastapi import HTTPException
 
+from app.core.config import settings
+from app.core.security import verify_verification_token
 from app.pubsub import async_kafka_consumer, async_kafka_producer
 from app.pubsub.async_kafka_consumer import AsyncKafkaConsumer
 from app.pubsub.async_kafka_producer import AsyncKafkaProducer
@@ -36,12 +38,14 @@ class FakeKafkaConsumer:
 
 class FakeEmailService:
     sent: list[tuple[str, str]] = []
+    verification_urls: list[str] = []
 
     def __init__(self, user: UserInDB) -> None:
         self.user = user
 
     async def send_verification_email(self, verification_url: str) -> bool:
         self.sent.append(("verification", self.user.email))
+        self.verification_urls.append(verification_url)
         return True
 
     async def send_welcome_email(self) -> bool:
@@ -52,6 +56,7 @@ class FakeEmailService:
 @pytest.fixture
 def consumer(monkeypatch) -> AsyncKafkaConsumer:
     FakeEmailService.sent = []
+    FakeEmailService.verification_urls = []
     monkeypatch.setattr(async_kafka_consumer, "async_session", async_session_maker)
     monkeypatch.setattr(async_kafka_consumer, "EmailService", FakeEmailService)
     consumer = AsyncKafkaConsumer.__new__(AsyncKafkaConsumer)
@@ -73,7 +78,7 @@ async def test_bad_message_does_not_stop_the_batch(
             kafka_message("new-active-user", {"wrong": "payload"}, 1),
             kafka_message(
                 "new-user-registration",
-                {"id": test_user.id, "verification_url": "http://x"},
+                {"id": test_user.id},
                 2,
             ),
         ]
@@ -83,6 +88,22 @@ async def test_bad_message_does_not_stop_the_batch(
 
     assert FakeEmailService.sent == [("verification", test_user.email)]
     assert consumer.consumer.commits == 1
+
+
+async def test_consumer_builds_verification_link(
+    consumer: AsyncKafkaConsumer,
+    test_user: UserInDB,
+    monkeypatch,
+):
+    monkeypatch.setattr(settings, "PUBLIC_BASE_URL", "https://blog.example.com/")
+    message = kafka_message("new-user-registration", {"id": test_user.id})
+
+    await consumer._process_batch({"p": [message]})
+
+    [url] = FakeEmailService.verification_urls
+    prefix = "https://blog.example.com/api/v1/users/verification/"
+    assert url.startswith(prefix)
+    assert verify_verification_token(url.removeprefix(prefix)) == test_user.email
 
 
 async def test_empty_batch_is_not_committed(consumer: AsyncKafkaConsumer):

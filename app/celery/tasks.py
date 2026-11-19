@@ -7,7 +7,9 @@ from app.core.config import settings
 from app.core.reply_generators import get_reply_generator
 from app.db.session import async_session
 from app.core.async_elasticsearch_client import AsyncElasticsearchClient
+from app.pubsub.outbox import delete_old_published_events, relay_pending_events
 from app.repositories.comment_repository import CommentRepository
+from app.repositories.outbox_repository import OutboxRepository
 from app.repositories.post_repository import PostRepository
 from app.schemas.comment import CommentCreate
 
@@ -16,6 +18,20 @@ celery = Celery(
     "tasks",
     broker=settings.celery_broker_url,
 )
+
+OUTBOX_POLL_SECONDS = 5.0
+celery.conf.beat_schedule = {
+    "publish-outbox-events": {
+        "task": "outbox.publish_pending",
+        "schedule": OUTBOX_POLL_SECONDS,
+        # A run that waited longer than one interval is replaced by the next one.
+        "options": {"expires": OUTBOX_POLL_SECONDS},
+    },
+    "delete-old-outbox-events": {
+        "task": "outbox.delete_old_published",
+        "schedule": 3600.0,
+    },
+}
 
 logger = logging.getLogger(__file__)
 
@@ -56,6 +72,29 @@ def add_post_to_elastic_search(post_id: int):
 @celery.task
 def delete_post_document(post_id: int):
     run_coroutine(run_delete_post_document(post_id))
+
+
+@celery.task(name="outbox.publish_pending")
+def publish_pending_outbox_events():
+    run_coroutine(run_publish_pending_outbox_events())
+
+
+@celery.task(name="outbox.delete_old_published")
+def delete_old_outbox_events():
+    run_coroutine(run_delete_old_outbox_events())
+
+
+async def run_publish_pending_outbox_events() -> None:
+    async with async_session() as session:
+        published = await relay_pending_events(OutboxRepository(session))
+    if published:
+        logger.info(f"Published {published} outbox events")
+
+
+async def run_delete_old_outbox_events() -> None:
+    async with async_session() as session:
+        deleted = await delete_old_published_events(OutboxRepository(session))
+    logger.info(f"Deleted {deleted} old outbox events")
 
 
 async def run_delete_post_document(post_id: int):

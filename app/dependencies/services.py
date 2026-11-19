@@ -7,14 +7,18 @@ from app.dependencies.repositories import get_post_repository
 from app.repositories.comment_repository import CommentRepository
 from app.repositories.post_repository import PostRepository
 from app.repositories.user_repository import UserRepository
-from app.dependencies.repositories import get_user_repository
+from app.dependencies.repositories import get_outbox_repository, get_user_repository
+from app.repositories.outbox_repository import OutboxRepository
 from app.services.comment_service import CommentService
 from app.services.post_service import PostService
 from app.services.user_service import UserService
 
 
-def get_user_service(city_repository: UserRepository = Depends(get_user_repository)) -> UserService:
-    return UserService(city_repository)
+def get_user_service(
+    user_repository: UserRepository = Depends(get_user_repository),
+    outbox_repository: OutboxRepository = Depends(get_outbox_repository),
+) -> UserService:
+    return UserService(user_repository, outbox_repository)
 
 
 def get_post_service(post_repository: PostRepository = Depends(get_post_repository)) -> PostService:

@@ -4,6 +4,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
 from app.repositories.comment_repository import CommentRepository
+from app.repositories.outbox_repository import OutboxRepository
 from app.repositories.post_repository import PostRepository
 from app.repositories.user_repository import UserRepository
 from app.db.session import get_session
@@ -19,6 +20,10 @@ def get_post_repository(session: AsyncSession = Depends(get_session)) -> PostRep
 
 def get_comment_repository(session: AsyncSession = Depends(get_session)) -> CommentRepository:
     return CommentRepository(session)
+
+
+def get_outbox_repository(session: AsyncSession = Depends(get_session)) -> OutboxRepository:
+    return OutboxRepository(session)
 
 
 UserRepoDependency = Annotated[UserRepository, Depends(get_user_repository)]
