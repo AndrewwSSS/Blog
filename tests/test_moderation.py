@@ -9,7 +9,7 @@ from app.repositories.post_repository import PostRepository
 from app.schemas.comment import CommentInDB, CommentUpdate
 from app.schemas.post import PostInDB, PostUpdate
 from app.schemas.user import UserInDB
-from app.services import comment_service, post_service
+from app.services import comment_service, moderation, post_service
 from app.services.comment_service import CommentService
 from app.services.post_service import PostService
 from tests.fixtures import (
@@ -82,14 +82,13 @@ async def test_validate_post_blocks_and_unblocks(
     monkeypatch,
 ):
     repository = PostRepository(session)
-    service = PostService(repository)
 
-    monkeypatch.setattr(post_service, "get_content_validator", RejectAllValidator)
-    await service.validate_content(test_post.id)
+    monkeypatch.setattr(moderation, "get_content_validator", RejectAllValidator)
+    await moderation.moderate_post(repository, test_post.id)
     assert (await repository.get_by_id(test_post.id)).is_blocked is True
 
-    monkeypatch.setattr(post_service, "get_content_validator", AcceptAllValidator)
-    await service.validate_content(test_post.id)
+    monkeypatch.setattr(moderation, "get_content_validator", AcceptAllValidator)
+    await moderation.moderate_post(repository, test_post.id)
     assert (await repository.get_by_id(test_post.id)).is_blocked is False
 
 
@@ -99,14 +98,13 @@ async def test_validate_comment_blocks_and_unblocks(
     monkeypatch,
 ):
     repository = CommentRepository(session)
-    service = CommentService(repository)
 
-    monkeypatch.setattr(comment_service, "get_content_validator", RejectAllValidator)
-    await service.validate_content(test_comment.id)
+    monkeypatch.setattr(moderation, "get_content_validator", RejectAllValidator)
+    await moderation.moderate_comment(repository, test_comment.id)
     assert (await repository.get_by_id(test_comment.id)).is_blocked is True
 
-    monkeypatch.setattr(comment_service, "get_content_validator", AcceptAllValidator)
-    await service.validate_content(test_comment.id)
+    monkeypatch.setattr(moderation, "get_content_validator", AcceptAllValidator)
+    await moderation.moderate_comment(repository, test_comment.id)
     assert (await repository.get_by_id(test_comment.id)).is_blocked is False
 
 

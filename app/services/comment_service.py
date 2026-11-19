@@ -1,11 +1,9 @@
-import logging
 from datetime import date
 
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from starlette import status
 
-from app.core.validation import get_content_validator
 from app.core.utils import PagePaginator
 from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import (
@@ -17,9 +15,6 @@ from app.schemas.comment import (
 )
 from app.schemas.user import UserInDB
 from app.celery.tasks import validate_comment_content
-
-
-logger = logging.getLogger(__name__)
 
 
 class CommentService:
@@ -66,19 +61,6 @@ class CommentService:
 
     async def get_analytics(self, date_from: date, date_to: date) -> dict:
         return await self.repository.get_analytics(date_from, date_to)
-
-    async def validate_content(self, comment_id) -> None:
-        comment = await self.repository.get_by_id(comment_id)
-        if not comment:
-            raise ValueError("Comment not found")
-        validator = get_content_validator()
-        is_validated = await validator.validate_comment(
-            comment.content,
-        )
-        should_block = not is_validated
-        if comment.is_blocked != should_block:
-            await self.repository.update_by_id(comment.id, is_blocked=should_block)
-            logger.info(f"Comment {comment.id} is_blocked set to {should_block}")
 
     async def get_by_id(self, record_id: int, include_blocked: bool = False) -> CommentInDB:
         comment = await self.repository.get_by_id(record_id)

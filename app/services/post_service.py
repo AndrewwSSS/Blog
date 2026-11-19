@@ -5,7 +5,6 @@ from fastapi import HTTPException
 from starlette import status
 
 from app.core.cache import invalidate_posts_cache
-from app.core.validation import get_content_validator
 from app.core.utils import PagePaginator
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import Post, PostUpdate, PostInDB, PaginatedPosts, PostFilterParams
@@ -109,22 +108,6 @@ class PostService:
         await invalidate_posts_cache()
 
         delete_post_document.delay(post_id)
-
-    async def validate_content(self, post_id: int) -> None:
-        post = await self.repository.get_by_id(post_id)
-        if not post:
-            raise ValueError("Post not found")
-        validator = get_content_validator()
-        is_validated = await validator.validate_post(
-            post.content,
-            post.title,
-        )
-
-        should_block = not is_validated
-        if post.is_blocked != should_block:
-            await self.repository.update_by_id(post_id, is_blocked=should_block)
-            await invalidate_posts_cache()
-            logger.info(f"Post {post.id} is_blocked set to {should_block}")
 
     async def search(self, query: str) -> list[PostInDB]:
         try:
