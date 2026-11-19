@@ -1,11 +1,11 @@
 import uuid
 
 from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
+from app.db.session import make_sessionmaker
 from app.repositories.comment_repository import CommentRepository
 from app.repositories.post_repository import PostRepository
 from app.repositories.user_repository import UserRepository
@@ -27,7 +27,7 @@ def enable_sqlite_foreign_keys(dbapi_connection, connection_record) -> None:
     cursor.close()
 
 
-async_session_maker = sessionmaker(engine_test, class_=AsyncSession, expire_on_commit=False)
+async_session_maker = make_sessionmaker(engine_test)
 
 
 async def create_comment(
