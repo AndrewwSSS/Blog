@@ -2,7 +2,7 @@ COMPOSE ?= docker compose
 API     ?= api
 
 .DEFAULT_GOAL := help
-.PHONY: help env install build up up-debug down restart ps logs shell test test-local lint format migrate migration clean
+.PHONY: help env install build up up-debug down restart rebuild ps logs shell test test-local lint format migrate migration clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -26,6 +26,10 @@ down: ## Stop all services, including debug tools (keeps volumes and data)
 	$(COMPOSE) --profile debug down
 
 restart: down up ## Restart all services
+
+rebuild: ## Rebuild images, recreate all containers in the background, then follow logs
+	$(COMPOSE) up --build --force-recreate --remove-orphans -d
+	$(COMPOSE) logs -f --tail=100
 
 ps: ## Show service status
 	$(COMPOSE) ps
