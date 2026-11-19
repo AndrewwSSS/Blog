@@ -1,3 +1,4 @@
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -9,11 +10,16 @@ from app.core.config import settings
 
 SQLALCHEMY_DATABASE_URL = settings.database_url
 
-engine = create_async_engine(
-    SQLALCHEMY_DATABASE_URL,
-    future=True,
-    connect_args={"server_settings": {"timezone": "UTC"}},
-)
+
+def make_engine(url: str, **kwargs) -> AsyncEngine:
+    """Create an async engine; tests use it too, so they get the same connection settings."""
+    if make_url(url).drivername == "postgresql+asyncpg":
+        # Keeps SQL date() and casts of timestamptz columns in UTC, whatever the server default is.
+        kwargs.setdefault("connect_args", {"server_settings": {"timezone": "UTC"}})
+    return create_async_engine(url, **kwargs)
+
+
+engine = make_engine(SQLALCHEMY_DATABASE_URL)
 
 
 def make_sessionmaker(bind: AsyncEngine) -> async_sessionmaker[AsyncSession]:

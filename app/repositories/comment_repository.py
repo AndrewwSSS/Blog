@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Integer, Select, func, select
+from sqlalchemy import Date, Integer, Select, func, select
 
 from app.models import CommentDB
 from app.repositories.AsyncDatabaseRepository import AsyncDatabaseRepository
@@ -70,16 +70,18 @@ class CommentRepository(AsyncDatabaseRepository):
         return result.scalar_one()
 
     async def get_analytics(self, date_from: date, date_to: date):
+        # type_=Date makes SQLite's text result a date, as PostgreSQL already returns.
+        day = func.date(CommentDB.date_posted, type_=Date)
         query = (
             select(
-                func.date(CommentDB.date_posted).label("date"),
+                day.label("date"),
                 func.count(CommentDB.id).label("total_comments"),
                 func.sum(func.cast(CommentDB.is_blocked, Integer)).label("blocked_comments"),
             )
-            .where(func.date(CommentDB.date_posted) >= date_from)
-            .where(func.date(CommentDB.date_posted) <= date_to)
-            .group_by(func.date(CommentDB.date_posted))
-            .order_by(func.date(CommentDB.date_posted))
+            .where(day >= date_from)
+            .where(day <= date_to)
+            .group_by(day)
+            .order_by(day)
         )
 
         result = await self.session.execute(query)
