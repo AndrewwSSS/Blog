@@ -118,7 +118,9 @@ async def run_update_post_document(post_id: int):
         response = await es_repo.update_document(
             index_name="posts",
             document_id=post_id,
-            updated_document={"doc": post.dict(exclude_none=True)},
+            updated_document={
+                "doc": post.model_dump(exclude_none=True, exclude={"auto_replied_at"})
+            },
         )
         logger.info(f"Update response: {response}")
 
@@ -163,11 +165,18 @@ async def _create_reply_for_post(post_id: int) -> None:
         if post.is_blocked:
             logger.info(f"Post {post_id} is blocked, reply canceled")
             return
+        if post.auto_replied_at:
+            logger.info(f"Post {post_id} already has an auto-reply")
+            return
         reply_generator = get_reply_generator()
         reply_content = await reply_generator.generate_post_reply(
             post.title,
             post.content,
         )
+        # Two runs of this task can overlap; only the one that claims the post adds the reply.
+        if not await post_repo.claim_auto_reply(post_id):
+            logger.info(f"Post {post_id} was auto-replied by another run")
+            return
 
         comment_repo = CommentRepository(uow.session)
         comment = CommentCreate(

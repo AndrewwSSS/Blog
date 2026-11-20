@@ -1,10 +1,11 @@
 import logging
 from datetime import datetime
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, select, update
 
 from app.models import PostDB
 from app.core.async_elasticsearch_client import AsyncElasticsearchClient
+from app.core.utils import utc_now
 from app.repositories.AsyncDatabaseRepository import AsyncDatabaseRepository
 from app.schemas.post import PostInDB
 
@@ -91,3 +92,12 @@ class PostRepository(AsyncDatabaseRepository):
             for post_id in ordered_ids
             if post_id in id_to_post
         ]
+
+    async def claim_auto_reply(self, post_id: int) -> bool:
+        """Mark the post as auto-replied. False when it already was, e.g. by an earlier run."""
+        result = await self.session.execute(
+            update(PostDB)
+            .where(PostDB.id == post_id, PostDB.auto_replied_at.is_(None))
+            .values(auto_replied_at=utc_now())
+        )
+        return result.rowcount == 1

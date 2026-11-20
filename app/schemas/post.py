@@ -44,6 +44,7 @@ class PostInDB(BaseModel):
     is_blocked: bool
     title: str
     content: str
+    auto_replied_at: datetime | None = None
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         from_attributes=True,
