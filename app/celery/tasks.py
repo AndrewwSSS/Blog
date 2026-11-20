@@ -1,9 +1,7 @@
 import asyncio
 import logging
 
-from celery import Celery
-
-from app.core.config import settings
+from app.celery.app import celery
 from app.core.reply_generators import get_reply_generator
 from app.db.session import async_session
 from app.db.unit_of_work import UnitOfWork
@@ -15,25 +13,6 @@ from app.repositories.post_repository import PostRepository
 from app.schemas.comment import CommentCreate
 from app.services.moderation import moderate_comment, moderate_post
 
-
-celery = Celery(
-    "tasks",
-    broker=settings.celery_broker_url,
-)
-
-OUTBOX_POLL_SECONDS = 5.0
-celery.conf.beat_schedule = {
-    "publish-outbox-events": {
-        "task": "outbox.publish_pending",
-        "schedule": OUTBOX_POLL_SECONDS,
-        # A run that waited longer than one interval is replaced by the next one.
-        "options": {"expires": OUTBOX_POLL_SECONDS},
-    },
-    "delete-old-outbox-events": {
-        "task": "outbox.delete_old_published",
-        "schedule": 3600.0,
-    },
-}
 
 logger = logging.getLogger(__file__)
 
