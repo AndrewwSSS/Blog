@@ -1,7 +1,6 @@
 services:
   kafka:
     image: apache/kafka:3.9.0
-    container_name: kafka
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -28,7 +27,6 @@ services:
       - REDIS_HOST=redis
       - PYTHONPATH=/app
     command: python app/pubsub/start_notification_service.py
-    container_name: notification-service
     depends_on:
       db:
         condition: service_healthy
@@ -89,7 +87,6 @@ services:
       - POSTGRES_HOST=db
       - REDIS_HOST=redis
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    container_name: api
     depends_on:
       db:
         condition: service_healthy
@@ -101,7 +98,6 @@ services:
     image: redis:7.4-alpine
     ports:
       - "127.0.0.1:6379:6379"
-    container_name: redis
 
   celery:
     build:
@@ -113,7 +109,6 @@ services:
       - .env
     command:
       celery -A app.celery.app:celery worker -l INFO
-    container_name: celery-worker
     depends_on:
       db:
         condition: service_healthy
@@ -130,7 +125,6 @@ services:
     env_file:
       - .env
     command: celery -A app.celery.app:celery beat -l INFO --schedule /tmp/celerybeat-schedule
-    container_name: celery-beat
     depends_on:
       - redis
       - celery
