@@ -42,7 +42,6 @@ class UserService:
                 username=user.username,
                 hashed_password=get_password_hash(user.password),
                 email=user.email,
-                commit=False,
             )
         except IntegrityError as e:
             raise HTTPException(
@@ -158,7 +157,7 @@ class UserService:
                 status_code=status.HTTP_400_BAD_REQUEST, detail="User is already active"
             )
 
-        await self.repository.update_by_id(record_id=user.id, is_active=True, commit=False)
+        await self.repository.update_by_id(record_id=user.id, is_active=True)
         event = self.outbox.add("new-active-user", {"email": email})
         self.uow.after_commit(publish_now, self.uow, self.outbox, [event])
 

@@ -56,6 +56,7 @@ async def test_unknown_and_active_addresses_look_the_same(
 ):
     active = test_users[0]
     await UserRepository(session).update_by_id(active.id, is_active=True)
+    await session.commit()
 
     known = await client.post(RESEND_URL, json={"email": test_user.email})
     unknown = await client.post(RESEND_URL, json={"email": "nobody@example.com"})

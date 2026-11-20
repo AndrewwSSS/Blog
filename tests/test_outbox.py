@@ -55,6 +55,11 @@ def user_service(uow: UnitOfWork) -> UserService:
     return UserService(UserRepository(uow.session), OutboxRepository(uow.session), uow)
 
 
+async def relay(producer) -> int:
+    async with UnitOfWork(async_session_maker) as uow:
+        return await relay_pending_events(OutboxRepository(uow.session), lambda: producer)
+
+
 def registration(username: str = "alice") -> UserRegister:
     return UserRegister(username=username, email=f"{username}@example.com", password="pw")
 
@@ -155,23 +160,23 @@ class FakeProducer:
         self.sent.append(payload)
 
 
-async def test_relay_publishes_pending_events_in_order_once(session):
+async def test_relay_publishes_pending_events_in_order_once():
     await add_events({"n": 1}, {"n": 2}, {"n": 3})
     producer = FakeProducer()
 
-    published = await relay_pending_events(OutboxRepository(session), lambda: producer)
-    again = await relay_pending_events(OutboxRepository(session), lambda: FakeProducer())
+    published = await relay(producer)
+    again = await relay(FakeProducer())
 
     assert (published, again) == (3, 0)
     assert producer.sent == [{"n": 1}, {"n": 2}, {"n": 3}]
     assert all(event.published_at for event in await all_events())
 
 
-async def test_relay_leaves_events_pending_when_kafka_is_down(session):
+async def test_relay_leaves_events_pending_when_kafka_is_down():
     await add_events({"n": 1})
     producer = FakeProducer(fail_start=True)
 
-    published = await relay_pending_events(OutboxRepository(session), lambda: producer)
+    published = await relay(producer)
 
     [event] = await all_events()
     assert published == 0
@@ -179,11 +184,11 @@ async def test_relay_leaves_events_pending_when_kafka_is_down(session):
     assert producer.stopped
 
 
-async def test_relay_records_failure_and_continues(session):
+async def test_relay_records_failure_and_continues():
     await add_events({"n": 1}, {"fail": True}, {"n": 3})
     producer = FakeProducer()
 
-    published = await relay_pending_events(OutboxRepository(session), lambda: producer)
+    published = await relay(producer)
 
     first, failed, third = await all_events()
     assert published == 2
@@ -194,13 +199,14 @@ async def test_relay_records_failure_and_continues(session):
     assert "message rejected" in failed.last_error
 
 
-async def test_cleanup_deletes_only_old_published_events(session):
+async def test_cleanup_deletes_only_old_published_events():
     now = datetime.now(UTC)
     await add_events({"age": "old"}, published_at=now - timedelta(days=8))
     await add_events({"age": "recent"}, published_at=now - timedelta(days=1))
     await add_events({"age": "pending"})
 
-    deleted = await delete_old_published_events(OutboxRepository(session))
+    async with UnitOfWork(async_session_maker) as uow:
+        deleted = await delete_old_published_events(OutboxRepository(uow.session))
 
     assert deleted == 1
     assert [event.payload["age"] for event in await all_events()] == ["recent", "pending"]

@@ -48,10 +48,12 @@ async def relay_pending_events(
     producer_factory: Callable[[], AIOKafkaProducer] = default_producer,
     batch_size: int = RELAY_BATCH_SIZE,
 ) -> int:
-    """Publish pending outbox events to Kafka and return how many were published."""
+    """Publish pending outbox events to Kafka and return how many were published.
+
+    Run it in a unit of work: its commit saves the results and releases the row locks.
+    """
     events = await outbox.lock_pending(batch_size)
     if not events:
-        await outbox.session.commit()
         return 0
 
     producer = producer_factory()
@@ -63,7 +65,6 @@ async def relay_pending_events(
             f"Kafka unavailable, {len(events)} outbox events stay pending", exc_info=True
         )
         await producer.stop()
-        await outbox.session.rollback()
         return 0
 
     try:
