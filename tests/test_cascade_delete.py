@@ -10,6 +10,7 @@ from app.schemas.post import PostInDB
 from app.schemas.user import UserInDB
 from app.services import comment_service
 from app.services.comment_service import CommentService
+from app.db.unit_of_work import UnitOfWork
 from tests.fixtures import create_comment
 
 
@@ -44,10 +45,11 @@ async def test_orm_delete_of_post_with_loaded_comments(
 async def test_comment_on_missing_post_is_rejected(
     test_user: UserInDB,
     session: AsyncSession,
+    uow: UnitOfWork,
     monkeypatch,
 ):
     monkeypatch.setattr(comment_service, "validate_comment_content", None)
-    service = CommentService(CommentRepository(session))
+    service = CommentService(CommentRepository(session), uow)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.create(CommentCreate(content="hi", post_id=999), test_user)

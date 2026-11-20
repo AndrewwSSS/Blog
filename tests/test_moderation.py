@@ -113,11 +113,12 @@ async def test_validate_comment_blocks_and_unblocks(
 async def test_blocked_post_is_hidden_from_reads(
     test_user: UserInDB,
     session: AsyncSession,
+    uow: UnitOfWork,
 ):
     visible = await create_post(test_user.id)
     blocked = await create_post(test_user.id)
     await block_post(session, blocked.id)
-    service = PostService(PostRepository(session))
+    service = PostService(PostRepository(session), uow)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_by_id(blocked.id)
@@ -131,28 +132,34 @@ async def test_owner_can_update_and_delete_blocked_post(
     test_user: UserInDB,
     test_post: PostInDB,
     session: AsyncSession,
+    uow: UnitOfWork,
     fake_tasks: dict[str, FakeTask],
 ):
     await block_post(session, test_post.id)
-    service = PostService(PostRepository(session))
+    service = PostService(PostRepository(session), uow)
 
     updated = await service.update_by_id(test_post.id, PostUpdate(content="edited"), test_user)
     assert updated.content == "edited"
+    assert fake_tasks["validate_post_content"].calls == []
+    await uow.commit()
     assert fake_tasks["validate_post_content"].calls == [(test_post.id,)]
 
     await service.delete_by_id(test_post.id, test_user)
+    await uow.commit()
     assert await PostRepository(session).get_by_id(test_post.id) is None
+    assert fake_tasks["delete_post_document"].calls == [(test_post.id,)]
 
 
 async def test_blocked_comment_is_hidden_from_reads(
     test_user: UserInDB,
     test_post: PostInDB,
     session: AsyncSession,
+    uow: UnitOfWork,
 ):
     visible = await create_comment(test_user.id, test_post.id)
     blocked = await create_comment(test_user.id, test_post.id)
     await block_comment(session, blocked.id)
-    service = CommentService(CommentRepository(session))
+    service = CommentService(CommentRepository(session), uow)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_by_id(blocked.id)
@@ -166,16 +173,18 @@ async def test_comment_update_requeues_moderation(
     test_user: UserInDB,
     test_comment: CommentInDB,
     session: AsyncSession,
+    uow: UnitOfWork,
     fake_tasks: dict[str, FakeTask],
 ):
     await block_comment(session, test_comment.id)
-    service = CommentService(CommentRepository(session))
+    service = CommentService(CommentRepository(session), uow)
 
     updated = await service.update_by_id(
         test_comment.id, test_user, CommentUpdate(content="edited")
     )
 
     assert updated.content == "edited"
+    await uow.commit()
     assert fake_tasks["validate_comment_content"].calls == [(test_comment.id,)]
 
 

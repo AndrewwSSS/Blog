@@ -1,9 +1,14 @@
 import logging
+from collections.abc import AsyncGenerator
 
 import pytest
+from httpx import ASGITransport, AsyncClient
 
+from app.db.session import get_unit_of_work
 from app.db.unit_of_work import UnitOfWork
 from app.models import UserDB
+from app.main import app
+from app.pubsub.async_kafka_producer import AsyncKafkaProducer
 from app.repositories.user_repository import UserRepository
 from tests.fixtures import async_session_maker
 
@@ -82,3 +87,37 @@ async def test_failing_callback_is_logged_and_others_still_run(caplog):
     assert await user_exists(user_id)
     assert calls == ["next"]
     assert "After-commit callback" in caplog.text
+
+
+class FailingCommitUnitOfWork(UnitOfWork):
+    async def commit(self) -> None:
+        raise RuntimeError("commit failed")
+
+
+async def failing_unit_of_work() -> AsyncGenerator[UnitOfWork, None]:
+    async with FailingCommitUnitOfWork(async_session_maker) as uow:
+        yield uow
+
+
+async def test_failed_commit_returns_500_and_publishes_nothing(monkeypatch):
+    """Guards the FastAPI behaviour this design relies on: the request's commit
+    runs before the response is sent, so a failed commit is never reported as 201."""
+    published = []
+
+    async def fake_publish(topic: str, data: str, key: str | None = None) -> None:
+        published.append(topic)
+
+    monkeypatch.setattr(AsyncKafkaProducer, "publish", fake_publish)
+    monkeypatch.setitem(app.dependency_overrides, get_unit_of_work, failing_unit_of_work)
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/v1/users/register",
+            json={"username": "dave", "email": "dave@example.com", "password": "pw"},
+        )
+
+    assert response.status_code == 500
+    assert published == []
+    async with async_session_maker() as other:
+        assert await UserRepository(other).get_by_username("dave") is None

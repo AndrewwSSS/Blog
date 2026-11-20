@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.main import app
 from app.core import cache
 from app.db.base_model import BaseModel
-from app.db.session import get_session as get_async_session
+from app.db.session import get_unit_of_work
 from app.db.unit_of_work import UnitOfWork
 from app.schemas.comment import CommentInDB
 from app.schemas.post import PostInDB
@@ -74,12 +74,12 @@ def fake_redis(monkeypatch) -> FakeRedis:
     return redis
 
 
-async def override_get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session_maker() as session:
-        yield session
+async def override_get_unit_of_work() -> AsyncGenerator[UnitOfWork, None]:
+    async with UnitOfWork(async_session_maker) as uow:
+        yield uow
 
 
-app.dependency_overrides[get_async_session] = override_get_async_session
+app.dependency_overrides[get_unit_of_work] = override_get_unit_of_work
 
 
 @pytest.fixture(autouse=True)

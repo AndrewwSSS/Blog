@@ -12,6 +12,7 @@ from app.core.security import (
     password_needs_rehash,
     verify_password,
 )
+from app.db.unit_of_work import UnitOfWork
 from app.pubsub.outbox import publish_now
 from app.repositories.outbox_repository import OutboxRepository
 from app.repositories.user_repository import UserRepository
@@ -25,9 +26,15 @@ VERIFICATION_RESEND_COOLDOWN_SECONDS = 60
 
 
 class UserService:
-    def __init__(self, user_repository: UserRepository, outbox_repository: OutboxRepository):
+    def __init__(
+        self,
+        user_repository: UserRepository,
+        outbox_repository: OutboxRepository,
+        uow: UnitOfWork,
+    ) -> None:
         self.repository = user_repository
         self.outbox = outbox_repository
+        self.uow = uow
 
     async def create(self, user: UserRegister) -> UserInDB:
         try:
@@ -38,15 +45,13 @@ class UserService:
                 commit=False,
             )
         except IntegrityError as e:
-            await self.repository.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User with this username or email already exists.",
             ) from e
 
         event = self.outbox.add("new-user-registration", {"id": created_user.id})
-        await self.repository.commit()
-        await publish_now(self.outbox, [event])
+        self.uow.after_commit(publish_now, self.uow, self.outbox, [event])
         return created_user
 
     async def get_by_id(self, user_id: int) -> UserInDB:
@@ -155,8 +160,7 @@ class UserService:
 
         await self.repository.update_by_id(record_id=user.id, is_active=True, commit=False)
         event = self.outbox.add("new-active-user", {"email": email})
-        await self.repository.commit()
-        await publish_now(self.outbox, [event])
+        self.uow.after_commit(publish_now, self.uow, self.outbox, [event])
 
     async def resend_verification(self, email: str) -> None:
         """Queue a new verification email for an unverified user.
@@ -174,4 +178,3 @@ class UserService:
             return
 
         self.outbox.add("new-user-registration", {"id": user.id})
-        await self.repository.commit()

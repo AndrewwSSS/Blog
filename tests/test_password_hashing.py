@@ -76,7 +76,7 @@ def test_dummy_verify_runs():
 
 
 async def login(session: AsyncSession, username: str, password: str) -> UserInDB:
-    service = UserService(UserRepository(session), OutboxRepository(session))
+    service = UserService(UserRepository(session), OutboxRepository(session), uow=None)
     return await service.authenticate(UserLoginRequest(username=username, password=password))
 
 
