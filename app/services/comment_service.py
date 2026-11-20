@@ -6,6 +6,8 @@ from starlette import status
 
 from app.core.utils import PagePaginator
 from app.db.unit_of_work import UnitOfWork
+from app.pubsub.outbox import publish_now
+from app.repositories.outbox_repository import OutboxRepository
 from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import (
     CommentCreate,
@@ -19,9 +21,19 @@ from app.celery.tasks import validate_comment_content
 
 
 class CommentService:
-    def __init__(self, comment_repository: CommentRepository, uow: UnitOfWork) -> None:
+    def __init__(
+        self,
+        comment_repository: CommentRepository,
+        outbox_repository: OutboxRepository,
+        uow: UnitOfWork,
+    ) -> None:
         self.repository = comment_repository
+        self.outbox = outbox_repository
         self.uow = uow
+
+    def _queue_moderation(self, comment_id: int) -> None:
+        event = self.outbox.add_task(validate_comment_content.name, comment_id)
+        self.uow.after_commit(publish_now, self.uow, self.outbox, [event])
 
     async def get_list(
         self,
@@ -58,7 +70,7 @@ class CommentService:
                 detail=f"Post with id {comment.post_id} not found",
             ) from e
 
-        self.uow.after_commit(validate_comment_content.delay, comment_created.id)
+        self._queue_moderation(comment_created.id)
         return comment_created
 
     async def get_analytics(self, date_from: date, date_to: date) -> dict:
@@ -91,7 +103,7 @@ class CommentService:
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        self.uow.after_commit(validate_comment_content.delay, record_id)
+        self._queue_moderation(record_id)
         return await self.get_by_id(record_id, include_blocked=True)
 
     async def delete_by_id(

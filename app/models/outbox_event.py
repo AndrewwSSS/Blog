@@ -11,7 +11,8 @@ from app.db.types import UTCDateTime
 class OutboxEventDB(BaseModel):
     """An event saved in the same transaction as the data it describes.
 
-    The outbox relay publishes rows with published_at IS NULL to Kafka.
+    The outbox relay sends rows with published_at IS NULL: topics starting with
+    "celery:" as Celery tasks, all others to Kafka.
     """
 
     __tablename__ = "outbox_events"

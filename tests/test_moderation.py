@@ -6,29 +6,20 @@ from app.celery import tasks
 from app.core.validation.base_content_validator import BaseContentValidator
 from app.repositories.comment_repository import CommentRepository
 from app.repositories.post_repository import PostRepository
+from app.repositories.outbox_repository import OutboxRepository
 from app.schemas.comment import CommentInDB, CommentUpdate
 from app.schemas.post import PostInDB, PostUpdate
 from app.schemas.user import UserInDB
-from app.services import comment_service, moderation, post_service
+from app.services import moderation
 from app.services.comment_service import CommentService
 from app.services.post_service import PostService
 from app.db.unit_of_work import UnitOfWork
+from tests.conftest import SentTask
 from tests.fixtures import (
     async_session_maker,
     create_comment,
     create_post,
 )
-
-
-class FakeTask:
-    def __init__(self) -> None:
-        self.calls = []
-
-    def delay(self, *args) -> None:
-        self.calls.append(args)
-
-    def apply_async(self, args=(), **kwargs) -> None:
-        self.calls.append(tuple(args))
 
 
 class AcceptAllValidator(BaseContentValidator):
@@ -47,26 +38,19 @@ class RejectAllValidator(BaseContentValidator):
         return False
 
 
-@pytest.fixture(autouse=True)
-def fake_tasks(monkeypatch) -> dict[str, FakeTask]:
-    fakes = {}
-    for module, names in (
-        (
-            post_service,
-            (
-                "create_reply_for_post",
-                "validate_post_content",
-                "add_post_to_elastic_search",
-                "update_post_document",
-                "delete_post_document",
-            ),
-        ),
-        (comment_service, ("validate_comment_content",)),
-    ):
-        for name in names:
-            fakes[name] = FakeTask()
-            monkeypatch.setattr(module, name, fakes[name])
-    return fakes
+@pytest.fixture
+def fake_tasks(sent_tasks: list[SentTask]) -> "TaskCalls":
+    return TaskCalls(sent_tasks)
+
+
+class TaskCalls:
+    """Args of each sent Celery task, looked up by the task's function name."""
+
+    def __init__(self, sent: list[SentTask]) -> None:
+        self.sent = sent
+
+    def __getitem__(self, task: str) -> list[tuple]:
+        return [t.args for t in self.sent if t.short_name == task]
 
 
 async def block_post(session: AsyncSession, post_id: int) -> None:
@@ -118,7 +102,7 @@ async def test_blocked_post_is_hidden_from_reads(
     visible = await create_post(test_user.id)
     blocked = await create_post(test_user.id)
     await block_post(session, blocked.id)
-    service = PostService(PostRepository(session), uow)
+    service = PostService(PostRepository(session), OutboxRepository(session), uow)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_by_id(blocked.id)
@@ -133,21 +117,21 @@ async def test_owner_can_update_and_delete_blocked_post(
     test_post: PostInDB,
     session: AsyncSession,
     uow: UnitOfWork,
-    fake_tasks: dict[str, FakeTask],
+    fake_tasks: TaskCalls,
 ):
     await block_post(session, test_post.id)
-    service = PostService(PostRepository(session), uow)
+    service = PostService(PostRepository(session), OutboxRepository(session), uow)
 
     updated = await service.update_by_id(test_post.id, PostUpdate(content="edited"), test_user)
     assert updated.content == "edited"
-    assert fake_tasks["validate_post_content"].calls == []
+    assert fake_tasks["validate_post_content"] == []
     await uow.commit()
-    assert fake_tasks["validate_post_content"].calls == [(test_post.id,)]
+    assert fake_tasks["validate_post_content"] == [(test_post.id,)]
 
     await service.delete_by_id(test_post.id, test_user)
     await uow.commit()
     assert await PostRepository(session).get_by_id(test_post.id) is None
-    assert fake_tasks["delete_post_document"].calls == [(test_post.id,)]
+    assert fake_tasks["delete_post_document"] == [(test_post.id,)]
 
 
 async def test_blocked_comment_is_hidden_from_reads(
@@ -159,7 +143,7 @@ async def test_blocked_comment_is_hidden_from_reads(
     visible = await create_comment(test_user.id, test_post.id)
     blocked = await create_comment(test_user.id, test_post.id)
     await block_comment(session, blocked.id)
-    service = CommentService(CommentRepository(session), uow)
+    service = CommentService(CommentRepository(session), OutboxRepository(session), uow)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_by_id(blocked.id)
@@ -174,10 +158,10 @@ async def test_comment_update_requeues_moderation(
     test_comment: CommentInDB,
     session: AsyncSession,
     uow: UnitOfWork,
-    fake_tasks: dict[str, FakeTask],
+    fake_tasks: TaskCalls,
 ):
     await block_comment(session, test_comment.id)
-    service = CommentService(CommentRepository(session), uow)
+    service = CommentService(CommentRepository(session), OutboxRepository(session), uow)
 
     updated = await service.update_by_id(
         test_comment.id, test_user, CommentUpdate(content="edited")
@@ -185,7 +169,7 @@ async def test_comment_update_requeues_moderation(
 
     assert updated.content == "edited"
     await uow.commit()
-    assert fake_tasks["validate_comment_content"].calls == [(test_comment.id,)]
+    assert fake_tasks["validate_comment_content"] == [(test_comment.id,)]
 
 
 async def test_search_skips_blocked_posts(
