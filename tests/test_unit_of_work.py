@@ -115,7 +115,7 @@ async def test_failed_commit_returns_500_and_publishes_nothing(monkeypatch):
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/v1/users/register",
-            json={"username": "dave", "email": "dave@example.com", "password": "pw"},
+            json={"username": "dave", "email": "dave@example.com", "password": "password123"},
         )
 
     assert response.status_code == 500

@@ -46,7 +46,7 @@ async def login(client: AsyncClient) -> int:
 
 
 def registration(n: int) -> dict:
-    return {"username": f"user{n}", "email": f"user{n}@example.com", "password": "pw"}
+    return {"username": f"user{n}", "email": f"user{n}@example.com", "password": "password123"}
 
 
 async def test_hits_within_limit_are_allowed_then_refused(fake_redis: FakeRedis):
