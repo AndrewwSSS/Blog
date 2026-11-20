@@ -53,6 +53,28 @@ async def invalidate_posts_cache() -> None:
         logger.warning(f"Redis unavailable, posts cache not invalidated: {e}")
 
 
+async def hit_rate_limit(key: str, limit: int, window_seconds: int, *, fail_open: bool) -> int:
+    """Count one hit for `key` in a fixed window of `window_seconds`.
+
+    Returns 0 when the hit is within `limit`, otherwise the seconds until the
+    window resets. When Redis is unavailable the hit is allowed if `fail_open`,
+    otherwise it is refused for a whole window.
+    """
+    try:
+        async with redis.pipeline(transaction=True) as pipe:
+            pipe.incr(key)
+            pipe.expire(key, window_seconds, nx=True)
+            pipe.ttl(key)
+            count, _, ttl = await pipe.execute()
+    except RedisError as e:
+        logger.warning(f"Redis unavailable, rate limit {key} not checked: {e}")
+        return 0 if fail_open else window_seconds
+
+    if count <= limit:
+        return 0
+    return max(ttl, 1)
+
+
 async def acquire_cooldown(key: str, seconds: int) -> bool:
     """Hold `key` for `seconds` if it is free.
 
