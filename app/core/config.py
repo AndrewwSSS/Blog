@@ -1,5 +1,6 @@
 from typing import Literal
 
+from pydantic import PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,6 +36,10 @@ class Settings(BaseSettings):
 
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
+
+    RATE_LIMIT_LOGIN_PER_MINUTE: PositiveInt = 10
+    RATE_LIMIT_REGISTER_PER_HOUR: PositiveInt = 5
+    RATE_LIMIT_RESEND_PER_HOUR: PositiveInt = 5
 
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
