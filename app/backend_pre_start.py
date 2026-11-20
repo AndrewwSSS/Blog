@@ -7,6 +7,7 @@ from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixe
 from elasticsearch.exceptions import ConnectionError
 
 from app.db.session import async_session
+from app.db.unit_of_work import UnitOfWork
 from app.core.async_elasticsearch_client import AsyncElasticsearchClient
 from app.pubsub.async_kafka_producer import AsyncKafkaProducer
 
@@ -26,8 +27,8 @@ wait_seconds = 1
 async def wait_for_db() -> None:
     logger.info("Waiting for database")
     try:
-        async with async_session() as session:
-            await session.execute(select(1))
+        async with UnitOfWork(async_session) as uow:
+            await uow.session.execute(select(1))
         logger.info("Database is ready")
     except Exception as e:
         logger.error(e)

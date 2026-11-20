@@ -108,8 +108,8 @@ async def run_delete_post_document(post_id: int):
 
 
 async def run_update_post_document(post_id: int):
-    async with async_session() as session:
-        post_repo = PostRepository(session)
+    async with UnitOfWork(async_session) as uow:
+        post_repo = PostRepository(uow.session)
         post = await post_repo.get_by_id(post_id)
         if not post:
             logger.error(f"Post with id {post_id} not found")
@@ -134,8 +134,8 @@ async def run_comment_validation(comment_id: int):
 
 
 async def run_adding_post_to_elastic_search(post_id: int):
-    async with async_session() as session:
-        post_repo = PostRepository(session)
+    async with UnitOfWork(async_session) as uow:
+        post_repo = PostRepository(uow.session)
         post = await post_repo.get_by_id(post_id)
         if not post:
             logger.error("Post not found in database")

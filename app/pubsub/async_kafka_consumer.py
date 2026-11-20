@@ -82,8 +82,8 @@ class AsyncKafkaConsumer:
         payload = json.loads(message.value.decode("utf-8"))
         user_id = int(payload["id"])
 
-        async with async_session() as session:
-            user_repo = UserRepository(session)
+        async with UnitOfWork(async_session) as uow:
+            user_repo = UserRepository(uow.session)
             user = await user_repo.get_by_id(record_id=user_id)
             if not user:
                 logger.warning(f"User with id {user_id} not found")

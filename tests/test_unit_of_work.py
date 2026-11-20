@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from collections.abc import AsyncGenerator
 
 import pytest
@@ -121,3 +122,14 @@ async def test_failed_commit_returns_500_and_publishes_nothing(monkeypatch):
     assert published == []
     async with async_session_maker() as other:
         assert await UserRepository(other).get_by_username("dave") is None
+
+
+def test_app_code_opens_sessions_only_through_a_unit_of_work():
+    app_dir = Path(__file__).parent.parent / "app"
+    offenders = [
+        str(path.relative_to(app_dir))
+        for path in app_dir.rglob("*.py")
+        if "async_session()" in path.read_text()
+    ]
+
+    assert offenders == []
