@@ -9,6 +9,7 @@ from app.main import app
 from app.core import cache
 from app.db.base_model import BaseModel
 from app.db.session import get_session as get_async_session
+from app.db.unit_of_work import UnitOfWork
 from app.schemas.comment import CommentInDB
 from app.schemas.post import PostInDB
 from app.schemas.user import UserInDB
@@ -91,9 +92,16 @@ async def prepare_database():
 
 
 @pytest.fixture
-async def session() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session_maker() as session:
-        yield session
+async def uow() -> AsyncGenerator[UnitOfWork, None]:
+    """A unit of work that commits only when the test calls uow.commit()."""
+    async with UnitOfWork(async_session_maker) as uow:
+        yield uow
+        await uow.rollback()
+
+
+@pytest.fixture
+def session(uow: UnitOfWork) -> AsyncSession:
+    return uow.session
 
 
 @pytest.fixture

@@ -12,6 +12,7 @@ from app.schemas.user import UserInDB
 from app.services import comment_service, moderation, post_service
 from app.services.comment_service import CommentService
 from app.services.post_service import PostService
+from app.db.unit_of_work import UnitOfWork
 from tests.fixtures import (
     async_session_maker,
     create_comment,
@@ -79,16 +80,17 @@ async def block_comment(session: AsyncSession, comment_id: int) -> None:
 async def test_validate_post_blocks_and_unblocks(
     test_post: PostInDB,
     session: AsyncSession,
+    uow: UnitOfWork,
     monkeypatch,
 ):
     repository = PostRepository(session)
 
     monkeypatch.setattr(moderation, "get_content_validator", RejectAllValidator)
-    await moderation.moderate_post(repository, test_post.id)
+    await moderation.moderate_post(repository, uow, test_post.id)
     assert (await repository.get_by_id(test_post.id)).is_blocked is True
 
     monkeypatch.setattr(moderation, "get_content_validator", AcceptAllValidator)
-    await moderation.moderate_post(repository, test_post.id)
+    await moderation.moderate_post(repository, uow, test_post.id)
     assert (await repository.get_by_id(test_post.id)).is_blocked is False
 
 

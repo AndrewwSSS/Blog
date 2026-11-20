@@ -9,6 +9,7 @@ from app.core.security import generate_email_verification_token
 from app.pubsub.services.mail_service import EmailService
 from app.repositories.user_repository import UserRepository
 from app.db.session import async_session
+from app.db.unit_of_work import UnitOfWork
 
 
 logger = logging.getLogger(__name__)
@@ -60,8 +61,8 @@ class AsyncKafkaConsumer:
         payload = json.loads(message.value.decode("utf-8"))
         user_email = payload["email"]
 
-        async with async_session() as session:
-            user_repo = UserRepository(session)
+        async with UnitOfWork(async_session) as uow:
+            user_repo = UserRepository(uow.session)
             user = await user_repo.get_by_email(email=user_email)
             if not user:
                 logger.warning(f"User with email {user_email} not found")

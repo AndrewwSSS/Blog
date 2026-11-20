@@ -7,6 +7,7 @@ from app.core.validation.base_content_validator import BaseContentValidator
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import PaginatedPosts, PostFilterParams, PostInDB
 from app.services import moderation
+from app.db.unit_of_work import UnitOfWork
 
 
 class CountingPostService:
@@ -77,6 +78,7 @@ async def test_redis_outage_falls_back_to_database(monkeypatch):
 async def test_blocking_a_post_invalidates_cache(
     test_post: PostInDB,
     session: AsyncSession,
+    uow: UnitOfWork,
     monkeypatch,
 ):
     class RejectAllValidator(BaseContentValidator):
@@ -89,6 +91,8 @@ async def test_blocking_a_post_invalidates_cache(
     monkeypatch.setattr(moderation, "get_content_validator", RejectAllValidator)
     key_before = await cache.posts_page_key(PostFilterParams())
 
-    await moderation.moderate_post(PostRepository(session), test_post.id)
+    await moderation.moderate_post(PostRepository(session), uow, test_post.id)
+    assert await cache.posts_page_key(PostFilterParams()) == key_before
 
+    await uow.commit()
     assert await cache.posts_page_key(PostFilterParams()) != key_before
