@@ -1,29 +1,31 @@
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy.ext.asyncio.session import AsyncSession
 
+from app.db.session import get_unit_of_work
+from app.db.unit_of_work import UnitOfWork
 from app.repositories.comment_repository import CommentRepository
 from app.repositories.outbox_repository import OutboxRepository
 from app.repositories.post_repository import PostRepository
 from app.repositories.user_repository import UserRepository
-from app.db.session import get_session
+
+UnitOfWorkDependency = Annotated[UnitOfWork, Depends(get_unit_of_work)]
 
 
-def get_user_repository(session: AsyncSession = Depends(get_session)) -> UserRepository:
-    return UserRepository(session)
+def get_user_repository(uow: UnitOfWorkDependency) -> UserRepository:
+    return UserRepository(uow.session)
 
 
-def get_post_repository(session: AsyncSession = Depends(get_session)) -> PostRepository:
-    return PostRepository(session)
+def get_post_repository(uow: UnitOfWorkDependency) -> PostRepository:
+    return PostRepository(uow.session)
 
 
-def get_comment_repository(session: AsyncSession = Depends(get_session)) -> CommentRepository:
-    return CommentRepository(session)
+def get_comment_repository(uow: UnitOfWorkDependency) -> CommentRepository:
+    return CommentRepository(uow.session)
 
 
-def get_outbox_repository(session: AsyncSession = Depends(get_session)) -> OutboxRepository:
-    return OutboxRepository(session)
+def get_outbox_repository(uow: UnitOfWorkDependency) -> OutboxRepository:
+    return OutboxRepository(uow.session)
 
 
 UserRepoDependency = Annotated[UserRepository, Depends(get_user_repository)]

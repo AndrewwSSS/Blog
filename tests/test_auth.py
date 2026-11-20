@@ -21,6 +21,7 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
 @pytest.fixture
 async def active_user(test_user: UserInDB, session: AsyncSession) -> UserInDB:
     await UserRepository(session).update_by_id(test_user.id, is_active=True)
+    await session.commit()
     return test_user
 
 

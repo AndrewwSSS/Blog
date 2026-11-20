@@ -11,6 +11,7 @@ from app.schemas.post import PostFilterParams, PostInDB
 from app.schemas.user import UserInDB, UserUpdate
 from app.services.comment_service import CommentService
 from app.services.post_service import PostService
+from app.db.unit_of_work import UnitOfWork
 from tests.fixtures import (
     create_comment,
     create_post,
@@ -21,12 +22,13 @@ from tests.fixtures import (
 async def test_post_list_pages_with_filters(
     test_user: UserInDB,
     session: AsyncSession,
+    uow: UnitOfWork,
 ):
     other_user = await create_user()
     own_posts = [await create_post(test_user.id) for _ in range(5)]
     await create_post(other_user.id)
     await PostRepository(session).update_by_id(own_posts[0].id, is_blocked=True)
-    service = PostService(PostRepository(session))
+    service = PostService(PostRepository(session), uow)
 
     page = await service.get_list(PostFilterParams(owner_id=test_user.id, page=2, limit=2))
 
@@ -53,11 +55,12 @@ async def test_comment_list_pages_by_post(
     test_user: UserInDB,
     test_post: PostInDB,
     session: AsyncSession,
+    uow: UnitOfWork,
 ):
     other_post = await create_post(test_user.id)
     comments = [await create_comment(test_user.id, test_post.id) for _ in range(3)]
     await create_comment(test_user.id, other_post.id)
-    service = CommentService(CommentRepository(session))
+    service = CommentService(CommentRepository(session), uow)
 
     page = await service.get_list(CommentFilterParams(post_id=test_post.id, page=2, limit=2))
 

@@ -208,6 +208,6 @@ async def test_search_outage_returns_503():
             raise ElasticConnectionError("elasticsearch down")
 
     with pytest.raises(HTTPException) as exc_info:
-        await PostService(FailingRepository()).search("anything")
+        await PostService(FailingRepository(), uow=None).search("anything")
 
     assert exc_info.value.status_code == 503

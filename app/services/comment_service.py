@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from starlette import status
 
 from app.core.utils import PagePaginator
+from app.db.unit_of_work import UnitOfWork
 from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import (
     CommentCreate,
@@ -18,8 +19,9 @@ from app.celery.tasks import validate_comment_content
 
 
 class CommentService:
-    def __init__(self, comment_repository: CommentRepository) -> None:
+    def __init__(self, comment_repository: CommentRepository, uow: UnitOfWork) -> None:
         self.repository = comment_repository
+        self.uow = uow
 
     async def get_list(
         self,
@@ -56,7 +58,7 @@ class CommentService:
                 detail=f"Post with id {comment.post_id} not found",
             ) from e
 
-        validate_comment_content.delay(comment_created.id)
+        self.uow.after_commit(validate_comment_content.delay, comment_created.id)
         return comment_created
 
     async def get_analytics(self, date_from: date, date_to: date) -> dict:
@@ -89,7 +91,7 @@ class CommentService:
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        validate_comment_content.delay(record_id)
+        self.uow.after_commit(validate_comment_content.delay, record_id)
         return await self.get_by_id(record_id, include_blocked=True)
 
     async def delete_by_id(

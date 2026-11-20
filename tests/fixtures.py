@@ -6,6 +6,7 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.db.session import make_engine, make_sessionmaker
+from app.db.unit_of_work import UnitOfWork
 from app.repositories.comment_repository import CommentRepository
 from app.repositories.post_repository import PostRepository
 from app.repositories.user_repository import UserRepository
@@ -45,24 +46,24 @@ async def create_comment(
     post_id: int,
     content: str = "",
 ) -> CommentInDB:
-    async with async_session_maker() as session:
-        repository = CommentRepository(session)
+    async with UnitOfWork(async_session_maker) as uow:
+        repository = CommentRepository(uow.session)
         comment = CommentCreate(content=f"{content}-{uuid.uuid4()}", post_id=post_id)
         created_comment = await repository.create(**comment.model_dump(), owner_id=owner_id)
     return created_comment
 
 
 async def create_post(owner_id: int, content: str = "", title: str = "") -> PostInDB:
-    async with async_session_maker() as session:
-        repository = PostRepository(session)
+    async with UnitOfWork(async_session_maker) as uow:
+        repository = PostRepository(uow.session)
         post = Post(content=f"{content}-{uuid.uuid4()}", title=f"{title}-{uuid.uuid4()}")
         created_post = await repository.create(**post.model_dump(), owner_id=owner_id)
     return created_post
 
 
 async def create_user(username: str = "", email: str = "", password: str = "") -> UserInDB:
-    async with async_session_maker() as session:
-        repository = UserRepository(session)
+    async with UnitOfWork(async_session_maker) as uow:
+        repository = UserRepository(uow.session)
 
         created_user = await repository.create(
             username=f"{username}{uuid.uuid4()}",

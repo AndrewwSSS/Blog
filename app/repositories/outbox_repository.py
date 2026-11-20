@@ -12,7 +12,7 @@ class OutboxRepository:
         self.session = session
 
     def add(self, topic: str, payload: dict) -> OutboxEventDB:
-        """Stage an event in the current transaction; the caller commits."""
+        """Stage an event in the current transaction; the unit of work commits it."""
         event = OutboxEventDB(topic=topic, payload=payload)
         self.session.add(event)
         return event
@@ -33,11 +33,9 @@ class OutboxRepository:
         now = utc_now()
         for event in events:
             event.published_at = now
-        await self.session.commit()
 
     async def delete_published_before(self, cutoff: datetime) -> int:
         result = await self.session.execute(
             delete(OutboxEventDB).where(OutboxEventDB.published_at < cutoff)
         )
-        await self.session.commit()
         return result.rowcount

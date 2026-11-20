@@ -5,9 +5,9 @@ import pytest
 from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import generate_email_verification_token
+from app.db.unit_of_work import UnitOfWork
 from app.main import app
 from app.models import OutboxEventDB
 from app.pubsub.async_kafka_producer import AsyncKafkaProducer
@@ -51,39 +51,51 @@ def kafka_up(monkeypatch) -> list[tuple[str, dict]]:
     return published
 
 
-def user_service(session: AsyncSession) -> UserService:
-    return UserService(UserRepository(session), OutboxRepository(session))
+def user_service(uow: UnitOfWork) -> UserService:
+    return UserService(UserRepository(uow.session), OutboxRepository(uow.session), uow)
+
+
+async def relay(producer) -> int:
+    async with UnitOfWork(async_session_maker) as uow:
+        return await relay_pending_events(OutboxRepository(uow.session), lambda: producer)
 
 
 def registration(username: str = "alice") -> UserRegister:
     return UserRegister(username=username, email=f"{username}@example.com", password="pw")
 
 
-async def test_registration_with_kafka_down_keeps_event_in_outbox(session, kafka_down):
-    user = await user_service(session).create(registration())
+async def test_registration_with_kafka_down_keeps_event_in_outbox(uow, kafka_down):
+    user = await user_service(uow).create(registration())
+    await uow.commit()
 
     [event] = await all_events()
     assert (event.topic, event.payload) == ("new-user-registration", {"id": user.id})
     assert event.published_at is None
 
 
-async def test_registration_with_kafka_up_publishes_immediately(session, kafka_up):
-    user = await user_service(session).create(registration())
+async def test_registration_with_kafka_up_publishes_after_commit(uow, kafka_up):
+    user = await user_service(uow).create(registration())
+    assert kafka_up == []
+
+    await uow.commit()
 
     assert kafka_up == [("new-user-registration", {"id": user.id})]
     [event] = await all_events()
     assert event.published_at is not None
 
 
-async def test_failed_registration_writes_no_event(session, kafka_up):
-    service = user_service(session)
+async def test_failed_registration_writes_no_event(uow, kafka_up):
+    service = user_service(uow)
     await service.create(registration("alice"))
+    await uow.commit()
 
     with pytest.raises(HTTPException) as exc_info:
         await service.create(registration("alice"))
 
     assert exc_info.value.status_code == 400
+    await uow.rollback()
     assert len(await all_events()) == 1
+    assert len(kafka_up) == 1
 
 
 async def test_register_endpoint_returns_201_when_kafka_is_down(kafka_down):
@@ -98,8 +110,31 @@ async def test_register_endpoint_returns_201_when_kafka_is_down(kafka_down):
     assert event.payload == {"id": response.json()["id"]}
 
 
-async def test_verification_writes_new_active_user_event(session, test_user: UserInDB, kafka_down):
-    await user_service(session).verify_user(generate_email_verification_token(test_user.email))
+async def test_register_endpoint_publishes_only_committed_users(monkeypatch):
+    seen_by_other_connections = []
+
+    async def checking_publish(topic: str, data: str, key: str | None = None) -> None:
+        async with async_session_maker() as other:
+            user = await UserRepository(other).get_by_id(json.loads(data)["id"])
+        seen_by_other_connections.append(user is not None)
+
+    monkeypatch.setattr(AsyncKafkaProducer, "publish", checking_publish)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/api/v1/users/register",
+            json={"username": "carol", "email": "carol@example.com", "password": "pw"},
+        )
+
+    assert response.status_code == 201
+    assert seen_by_other_connections == [True]
+    [event] = await all_events()
+    assert event.published_at is not None
+
+
+async def test_verification_writes_new_active_user_event(uow, test_user: UserInDB, kafka_down):
+    await user_service(uow).verify_user(generate_email_verification_token(test_user.email))
+    await uow.commit()
 
     [event] = await all_events()
     assert (event.topic, event.payload) == ("new-active-user", {"email": test_user.email})
@@ -125,23 +160,23 @@ class FakeProducer:
         self.sent.append(payload)
 
 
-async def test_relay_publishes_pending_events_in_order_once(session):
+async def test_relay_publishes_pending_events_in_order_once():
     await add_events({"n": 1}, {"n": 2}, {"n": 3})
     producer = FakeProducer()
 
-    published = await relay_pending_events(OutboxRepository(session), lambda: producer)
-    again = await relay_pending_events(OutboxRepository(session), lambda: FakeProducer())
+    published = await relay(producer)
+    again = await relay(FakeProducer())
 
     assert (published, again) == (3, 0)
     assert producer.sent == [{"n": 1}, {"n": 2}, {"n": 3}]
     assert all(event.published_at for event in await all_events())
 
 
-async def test_relay_leaves_events_pending_when_kafka_is_down(session):
+async def test_relay_leaves_events_pending_when_kafka_is_down():
     await add_events({"n": 1})
     producer = FakeProducer(fail_start=True)
 
-    published = await relay_pending_events(OutboxRepository(session), lambda: producer)
+    published = await relay(producer)
 
     [event] = await all_events()
     assert published == 0
@@ -149,11 +184,11 @@ async def test_relay_leaves_events_pending_when_kafka_is_down(session):
     assert producer.stopped
 
 
-async def test_relay_records_failure_and_continues(session):
+async def test_relay_records_failure_and_continues():
     await add_events({"n": 1}, {"fail": True}, {"n": 3})
     producer = FakeProducer()
 
-    published = await relay_pending_events(OutboxRepository(session), lambda: producer)
+    published = await relay(producer)
 
     first, failed, third = await all_events()
     assert published == 2
@@ -164,13 +199,14 @@ async def test_relay_records_failure_and_continues(session):
     assert "message rejected" in failed.last_error
 
 
-async def test_cleanup_deletes_only_old_published_events(session):
+async def test_cleanup_deletes_only_old_published_events():
     now = datetime.now(UTC)
     await add_events({"age": "old"}, published_at=now - timedelta(days=8))
     await add_events({"age": "recent"}, published_at=now - timedelta(days=1))
     await add_events({"age": "pending"})
 
-    deleted = await delete_old_published_events(OutboxRepository(session))
+    async with UnitOfWork(async_session_maker) as uow:
+        deleted = await delete_old_published_events(OutboxRepository(uow.session))
 
     assert deleted == 1
     assert [event.payload["age"] for event in await all_events()] == ["recent", "pending"]

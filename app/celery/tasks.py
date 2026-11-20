@@ -6,6 +6,7 @@ from celery import Celery
 from app.core.config import settings
 from app.core.reply_generators import get_reply_generator
 from app.db.session import async_session
+from app.db.unit_of_work import UnitOfWork
 from app.core.async_elasticsearch_client import AsyncElasticsearchClient
 from app.pubsub.outbox import delete_old_published_events, relay_pending_events
 from app.repositories.comment_repository import CommentRepository
@@ -86,15 +87,15 @@ def delete_old_outbox_events():
 
 
 async def run_publish_pending_outbox_events() -> None:
-    async with async_session() as session:
-        published = await relay_pending_events(OutboxRepository(session))
+    async with UnitOfWork(async_session) as uow:
+        published = await relay_pending_events(OutboxRepository(uow.session))
     if published:
         logger.info(f"Published {published} outbox events")
 
 
 async def run_delete_old_outbox_events() -> None:
-    async with async_session() as session:
-        deleted = await delete_old_published_events(OutboxRepository(session))
+    async with UnitOfWork(async_session) as uow:
+        deleted = await delete_old_published_events(OutboxRepository(uow.session))
     logger.info(f"Deleted {deleted} old outbox events")
 
 
@@ -107,8 +108,8 @@ async def run_delete_post_document(post_id: int):
 
 
 async def run_update_post_document(post_id: int):
-    async with async_session() as session:
-        post_repo = PostRepository(session)
+    async with UnitOfWork(async_session) as uow:
+        post_repo = PostRepository(uow.session)
         post = await post_repo.get_by_id(post_id)
         if not post:
             logger.error(f"Post with id {post_id} not found")
@@ -123,18 +124,18 @@ async def run_update_post_document(post_id: int):
 
 
 async def run_post_validation(post_id: int):
-    async with async_session() as session:
-        await moderate_post(PostRepository(session), post_id)
+    async with UnitOfWork(async_session) as uow:
+        await moderate_post(PostRepository(uow.session), uow, post_id)
 
 
 async def run_comment_validation(comment_id: int):
-    async with async_session() as session:
-        await moderate_comment(CommentRepository(session), comment_id)
+    async with UnitOfWork(async_session) as uow:
+        await moderate_comment(CommentRepository(uow.session), comment_id)
 
 
 async def run_adding_post_to_elastic_search(post_id: int):
-    async with async_session() as session:
-        post_repo = PostRepository(session)
+    async with UnitOfWork(async_session) as uow:
+        post_repo = PostRepository(uow.session)
         post = await post_repo.get_by_id(post_id)
         if not post:
             logger.error("Post not found in database")
@@ -154,8 +155,8 @@ async def run_adding_post_to_elastic_search(post_id: int):
 
 
 async def _create_reply_for_post(post_id: int) -> None:
-    async with async_session() as session:
-        post_repo = PostRepository(session)
+    async with UnitOfWork(async_session) as uow:
+        post_repo = PostRepository(uow.session)
         post = await post_repo.get_by_id(post_id)
         if not post:
             raise ValueError("Post not found")
@@ -168,7 +169,7 @@ async def _create_reply_for_post(post_id: int) -> None:
             post.content,
         )
 
-        comment_repo = CommentRepository(session)
+        comment_repo = CommentRepository(uow.session)
         comment = CommentCreate(
             content=reply_content,
             post_id=post_id,

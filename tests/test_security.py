@@ -68,7 +68,7 @@ def test_verification_token_rejects_tampering():
     ],
 )
 async def test_authenticate_hides_whether_user_exists(username, password):
-    service = UserService(FakeUserRepository(make_user()), outbox_repository=None)
+    service = UserService(FakeUserRepository(make_user()), outbox_repository=None, uow=None)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.authenticate(UserLoginRequest(username=username, password=password))
@@ -79,7 +79,7 @@ async def test_authenticate_hides_whether_user_exists(username, password):
 
 async def test_authenticate_returns_user_for_correct_password():
     user = make_user()
-    service = UserService(FakeUserRepository(user), outbox_repository=None)
+    service = UserService(FakeUserRepository(user), outbox_repository=None, uow=None)
 
     result = await service.authenticate(
         UserLoginRequest(username="alice", password="correct-password")

@@ -6,6 +6,7 @@ from starlette import status
 
 from app.core.cache import invalidate_posts_cache
 from app.core.utils import PagePaginator
+from app.db.unit_of_work import UnitOfWork
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import Post, PostUpdate, PostInDB, PaginatedPosts, PostFilterParams
 from app.schemas.user import UserInDB
@@ -21,8 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 class PostService:
-    def __init__(self, post_repository: PostRepository) -> None:
+    def __init__(self, post_repository: PostRepository, uow: UnitOfWork) -> None:
         self.repository = post_repository
+        self.uow = uow
 
     async def get_list(self, filter_params: PostFilterParams) -> PaginatedPosts:
 
@@ -51,12 +53,15 @@ class PostService:
             **post.model_dump(),
             owner_id=user.id,
         )
-        await invalidate_posts_cache()
-
-        validate_post_content.delay(post.id)
+        self.uow.after_commit(invalidate_posts_cache)
+        self.uow.after_commit(validate_post_content.delay, post.id)
         if user.post_auto_reply:
-            create_reply_for_post.apply_async(args=(post.id,), countdown=int(user.reply_after))
-        add_post_to_elastic_search.delay(post.id)
+            self.uow.after_commit(
+                create_reply_for_post.apply_async,
+                args=(post.id,),
+                countdown=int(user.reply_after),
+            )
+        self.uow.after_commit(add_post_to_elastic_search.delay, post.id)
 
         return post
 
@@ -90,9 +95,9 @@ class PostService:
                 status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id {post_id} not found"
             )
 
-        await invalidate_posts_cache()
-        validate_post_content.delay(post_id)
-        update_post_document.delay(post_id)
+        self.uow.after_commit(invalidate_posts_cache)
+        self.uow.after_commit(validate_post_content.delay, post_id)
+        self.uow.after_commit(update_post_document.delay, post_id)
         return await self.repository.get_by_id(post_id)
 
     async def delete_by_id(self, post_id: int, user: UserInDB) -> None:
@@ -105,9 +110,8 @@ class PostService:
             )
 
         await self.repository.delete_by_id(post_id)
-        await invalidate_posts_cache()
-
-        delete_post_document.delay(post_id)
+        self.uow.after_commit(invalidate_posts_cache)
+        self.uow.after_commit(delete_post_document.delay, post_id)
 
     async def search(self, query: str) -> list[PostInDB]:
         try:

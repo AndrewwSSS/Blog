@@ -7,6 +7,7 @@ from aiokafka import AIOKafkaProducer
 
 from app.core.config import settings
 from app.core.utils import utc_now
+from app.db.unit_of_work import UnitOfWork
 from app.models import OutboxEventDB
 from app.pubsub.async_kafka_producer import AsyncKafkaProducer
 from app.repositories.outbox_repository import OutboxRepository
@@ -26,8 +27,10 @@ def default_producer() -> AIOKafkaProducer:
     return AIOKafkaProducer(bootstrap_servers=settings.KAFKA_URL, acks="all")
 
 
-async def publish_now(outbox: OutboxRepository, events: list[OutboxEventDB]) -> None:
-    """Try to publish freshly committed events right away.
+async def publish_now(
+    uow: UnitOfWork, outbox: OutboxRepository, events: list[OutboxEventDB]
+) -> None:
+    """Try to publish committed events right away; meant to run after the commit.
 
     Best effort: on any failure the events stay pending and the relay retries them.
     """
@@ -35,6 +38,7 @@ async def publish_now(outbox: OutboxRepository, events: list[OutboxEventDB]) -> 
         for event in events:
             await AsyncKafkaProducer.publish(event.topic, _serialize(event))
         await outbox.mark_published(events)
+        await uow.commit()
     except Exception:
         logger.warning("Immediate publish failed, the outbox relay will retry", exc_info=True)
 
@@ -44,10 +48,12 @@ async def relay_pending_events(
     producer_factory: Callable[[], AIOKafkaProducer] = default_producer,
     batch_size: int = RELAY_BATCH_SIZE,
 ) -> int:
-    """Publish pending outbox events to Kafka and return how many were published."""
+    """Publish pending outbox events to Kafka and return how many were published.
+
+    Run it in a unit of work: its commit saves the results and releases the row locks.
+    """
     events = await outbox.lock_pending(batch_size)
     if not events:
-        await outbox.session.commit()
         return 0
 
     producer = producer_factory()
@@ -59,7 +65,6 @@ async def relay_pending_events(
             f"Kafka unavailable, {len(events)} outbox events stay pending", exc_info=True
         )
         await producer.stop()
-        await outbox.session.rollback()
         return 0
 
     try:
