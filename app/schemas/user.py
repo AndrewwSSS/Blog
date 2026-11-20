@@ -4,10 +4,18 @@ from pydantic import BaseModel, EmailStr, Field, model_validator
 from pydantic import ConfigDict
 
 
+USERNAME_MIN_LENGTH = 3
+USERNAME_MAX_LENGTH = 32
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_MAX_LENGTH = 128
+# Looser than registration, so accounts created before these limits can still log in.
+LOGIN_USERNAME_MAX_LENGTH = 128
+
+
 class UserRegister(BaseModel):
-    username: str
+    username: str = Field(min_length=USERNAME_MIN_LENGTH, max_length=USERNAME_MAX_LENGTH)
     email: EmailStr
-    password: str
+    password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         from_attributes=True,
@@ -15,8 +23,8 @@ class UserRegister(BaseModel):
 
 
 class UserLoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(max_length=LOGIN_USERNAME_MAX_LENGTH)
+    password: str = Field(max_length=PASSWORD_MAX_LENGTH)
 
 
 class VerificationResendRequest(BaseModel):

@@ -61,7 +61,7 @@ async def relay(producer) -> int:
 
 
 def registration(username: str = "alice") -> UserRegister:
-    return UserRegister(username=username, email=f"{username}@example.com", password="pw")
+    return UserRegister(username=username, email=f"{username}@example.com", password="password123")
 
 
 async def test_registration_with_kafka_down_keeps_event_in_outbox(uow, kafka_down):
@@ -102,7 +102,7 @@ async def test_register_endpoint_returns_201_when_kafka_is_down(kafka_down):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(
             "/api/v1/users/register",
-            json={"username": "bob", "email": "bob@example.com", "password": "pw"},
+            json={"username": "bob", "email": "bob@example.com", "password": "password123"},
         )
 
     assert response.status_code == 201
@@ -123,7 +123,7 @@ async def test_register_endpoint_publishes_only_committed_users(monkeypatch):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(
             "/api/v1/users/register",
-            json={"username": "carol", "email": "carol@example.com", "password": "pw"},
+            json={"username": "carol", "email": "carol@example.com", "password": "password123"},
         )
 
     assert response.status_code == 201
