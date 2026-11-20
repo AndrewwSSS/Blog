@@ -29,15 +29,17 @@ def get_user_service(
 def get_post_service(
     uow: UnitOfWorkDependency,
     post_repository: PostRepository = Depends(get_post_repository),
+    outbox_repository: OutboxRepository = Depends(get_outbox_repository),
 ) -> PostService:
-    return PostService(post_repository, uow)
+    return PostService(post_repository, outbox_repository, uow)
 
 
 def get_comment_service(
     uow: UnitOfWorkDependency,
     comment_repository: CommentRepository = Depends(get_comment_repository),
+    outbox_repository: OutboxRepository = Depends(get_outbox_repository),
 ) -> CommentService:
-    return CommentService(comment_repository, uow)
+    return CommentService(comment_repository, outbox_repository, uow)
 
 
 UserServiceDependency = Annotated[UserService, Depends(get_user_service)]

@@ -1,9 +1,7 @@
 import asyncio
 import logging
 
-from celery import Celery
-
-from app.core.config import settings
+from app.celery.app import celery
 from app.core.reply_generators import get_reply_generator
 from app.db.session import async_session
 from app.db.unit_of_work import UnitOfWork
@@ -15,25 +13,6 @@ from app.repositories.post_repository import PostRepository
 from app.schemas.comment import CommentCreate
 from app.services.moderation import moderate_comment, moderate_post
 
-
-celery = Celery(
-    "tasks",
-    broker=settings.celery_broker_url,
-)
-
-OUTBOX_POLL_SECONDS = 5.0
-celery.conf.beat_schedule = {
-    "publish-outbox-events": {
-        "task": "outbox.publish_pending",
-        "schedule": OUTBOX_POLL_SECONDS,
-        # A run that waited longer than one interval is replaced by the next one.
-        "options": {"expires": OUTBOX_POLL_SECONDS},
-    },
-    "delete-old-outbox-events": {
-        "task": "outbox.delete_old_published",
-        "schedule": 3600.0,
-    },
-}
 
 logger = logging.getLogger(__file__)
 
@@ -118,7 +97,9 @@ async def run_update_post_document(post_id: int):
         response = await es_repo.update_document(
             index_name="posts",
             document_id=post_id,
-            updated_document={"doc": post.dict(exclude_none=True)},
+            updated_document={
+                "doc": post.model_dump(exclude_none=True, exclude={"auto_replied_at"})
+            },
         )
         logger.info(f"Update response: {response}")
 
@@ -163,11 +144,18 @@ async def _create_reply_for_post(post_id: int) -> None:
         if post.is_blocked:
             logger.info(f"Post {post_id} is blocked, reply canceled")
             return
+        if post.auto_replied_at:
+            logger.info(f"Post {post_id} already has an auto-reply")
+            return
         reply_generator = get_reply_generator()
         reply_content = await reply_generator.generate_post_reply(
             post.title,
             post.content,
         )
+        # Two runs of this task can overlap; only the one that claims the post adds the reply.
+        if not await post_repo.claim_auto_reply(post_id):
+            logger.info(f"Post {post_id} was auto-replied by another run")
+            return
 
         comment_repo = CommentRepository(uow.session)
         comment = CommentCreate(

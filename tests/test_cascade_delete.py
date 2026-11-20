@@ -5,10 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import PostDB
 from app.repositories.comment_repository import CommentRepository
 from app.repositories.post_repository import PostRepository
+from app.repositories.outbox_repository import OutboxRepository
 from app.schemas.comment import CommentCreate
 from app.schemas.post import PostInDB
 from app.schemas.user import UserInDB
-from app.services import comment_service
 from app.services.comment_service import CommentService
 from app.db.unit_of_work import UnitOfWork
 from tests.fixtures import create_comment
@@ -46,10 +46,8 @@ async def test_comment_on_missing_post_is_rejected(
     test_user: UserInDB,
     session: AsyncSession,
     uow: UnitOfWork,
-    monkeypatch,
 ):
-    monkeypatch.setattr(comment_service, "validate_comment_content", None)
-    service = CommentService(CommentRepository(session), uow)
+    service = CommentService(CommentRepository(session), OutboxRepository(session), uow)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.create(CommentCreate(content="hi", post_id=999), test_user)

@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from elasticsearch import ApiError, TransportError
 from fastapi import HTTPException
@@ -7,6 +8,8 @@ from starlette import status
 from app.core.cache import invalidate_posts_cache
 from app.core.utils import PagePaginator
 from app.db.unit_of_work import UnitOfWork
+from app.pubsub.outbox import publish_now
+from app.repositories.outbox_repository import OutboxRepository
 from app.repositories.post_repository import PostRepository
 from app.schemas.post import Post, PostUpdate, PostInDB, PaginatedPosts, PostFilterParams
 from app.schemas.user import UserInDB
@@ -22,8 +25,11 @@ logger = logging.getLogger(__name__)
 
 
 class PostService:
-    def __init__(self, post_repository: PostRepository, uow: UnitOfWork) -> None:
+    def __init__(
+        self, post_repository: PostRepository, outbox_repository: OutboxRepository, uow: UnitOfWork
+    ) -> None:
         self.repository = post_repository
+        self.outbox = outbox_repository
         self.uow = uow
 
     async def get_list(self, filter_params: PostFilterParams) -> PaginatedPosts:
@@ -53,15 +59,15 @@ class PostService:
             **post.model_dump(),
             owner_id=user.id,
         )
-        self.uow.after_commit(invalidate_posts_cache)
-        self.uow.after_commit(validate_post_content.delay, post.id)
+        events = [
+            self.outbox.add_task(validate_post_content.name, post.id),
+            self.outbox.add_task(add_post_to_elastic_search.name, post.id),
+        ]
         if user.post_auto_reply:
-            self.uow.after_commit(
-                create_reply_for_post.apply_async,
-                args=(post.id,),
-                countdown=int(user.reply_after),
-            )
-        self.uow.after_commit(add_post_to_elastic_search.delay, post.id)
+            reply_at = post.date_posted + timedelta(seconds=user.reply_after)
+            events.append(self.outbox.add_task(create_reply_for_post.name, post.id, eta=reply_at))
+        self.uow.after_commit(invalidate_posts_cache)
+        self.uow.after_commit(publish_now, self.uow, self.outbox, events)
 
         return post
 
@@ -95,9 +101,12 @@ class PostService:
                 status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id {post_id} not found"
             )
 
+        events = [
+            self.outbox.add_task(validate_post_content.name, post_id),
+            self.outbox.add_task(update_post_document.name, post_id),
+        ]
         self.uow.after_commit(invalidate_posts_cache)
-        self.uow.after_commit(validate_post_content.delay, post_id)
-        self.uow.after_commit(update_post_document.delay, post_id)
+        self.uow.after_commit(publish_now, self.uow, self.outbox, events)
         return await self.repository.get_by_id(post_id)
 
     async def delete_by_id(self, post_id: int, user: UserInDB) -> None:
@@ -110,8 +119,9 @@ class PostService:
             )
 
         await self.repository.delete_by_id(post_id)
+        event = self.outbox.add_task(delete_post_document.name, post_id)
         self.uow.after_commit(invalidate_posts_cache)
-        self.uow.after_commit(delete_post_document.delay, post_id)
+        self.uow.after_commit(publish_now, self.uow, self.outbox, [event])
 
     async def search(self, query: str) -> list[PostInDB]:
         try:

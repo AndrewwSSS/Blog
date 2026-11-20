@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.comment_repository import CommentRepository
 from app.repositories.post_repository import PostRepository
+from app.repositories.outbox_repository import OutboxRepository
 from app.schemas.comment import CommentFilterParams
 from app.schemas.post import PostFilterParams, PostInDB
 from app.schemas.user import UserInDB, UserUpdate
@@ -28,7 +29,7 @@ async def test_post_list_pages_with_filters(
     own_posts = [await create_post(test_user.id) for _ in range(5)]
     await create_post(other_user.id)
     await PostRepository(session).update_by_id(own_posts[0].id, is_blocked=True)
-    service = PostService(PostRepository(session), uow)
+    service = PostService(PostRepository(session), OutboxRepository(session), uow)
 
     page = await service.get_list(PostFilterParams(owner_id=test_user.id, page=2, limit=2))
 
@@ -60,7 +61,7 @@ async def test_comment_list_pages_by_post(
     other_post = await create_post(test_user.id)
     comments = [await create_comment(test_user.id, test_post.id) for _ in range(3)]
     await create_comment(test_user.id, other_post.id)
-    service = CommentService(CommentRepository(session), uow)
+    service = CommentService(CommentRepository(session), OutboxRepository(session), uow)
 
     page = await service.get_list(CommentFilterParams(post_id=test_post.id, page=2, limit=2))
 

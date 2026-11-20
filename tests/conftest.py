@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
+from app.celery.app import celery
 from app.core import cache
 from app.db.base_model import BaseModel
 from app.db.session import get_unit_of_work
@@ -105,6 +106,26 @@ class FakePipeline:
         return [
             await getattr(self.redis, name)(*args, **kwargs) for name, args, kwargs in self.commands
         ]
+
+
+class SentTask:
+    def __init__(self, name: str, args: tuple, eta) -> None:
+        self.name = name
+        self.short_name = name.rsplit(".", 1)[-1]
+        self.args = args
+        self.eta = eta
+
+
+@pytest.fixture(autouse=True)
+def sent_tasks(monkeypatch) -> list[SentTask]:
+    """Records Celery tasks instead of sending them to a broker."""
+    sent: list[SentTask] = []
+
+    def send_task(name: str, args=(), eta=None, **options) -> None:
+        sent.append(SentTask(name, tuple(args), eta))
+
+    monkeypatch.setattr(celery, "send_task", send_task)
+    return sent
 
 
 @pytest.fixture(autouse=True)

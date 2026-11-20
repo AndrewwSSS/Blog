@@ -20,6 +20,7 @@ class PostDB(BaseModel):
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     date_posted: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now, nullable=False)
     owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    auto_replied_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     owner: Mapped["UserDB"] = relationship("UserDB", back_populates="posts")
     comments: Mapped[list["CommentDB"]] = relationship(

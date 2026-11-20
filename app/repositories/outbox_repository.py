@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.utils import utc_now
 from app.models import OutboxEventDB
 
+TASK_TOPIC_PREFIX = "celery:"
+
 
 class OutboxRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -16,6 +18,13 @@ class OutboxRepository:
         event = OutboxEventDB(topic=topic, payload=payload)
         self.session.add(event)
         return event
+
+    def add_task(self, task_name: str, *args, eta: datetime | None = None) -> OutboxEventDB:
+        """Stage a Celery task; it is sent only after the transaction commits."""
+        payload: dict = {"args": list(args)}
+        if eta is not None:
+            payload["eta"] = eta.isoformat()
+        return self.add(f"{TASK_TOPIC_PREFIX}{task_name}", payload)
 
     async def lock_pending(self, limit: int) -> list[OutboxEventDB]:
         """Lock the oldest unpublished events; rows locked by another relay are skipped."""
