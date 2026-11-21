@@ -44,7 +44,9 @@ def _record_failure(event: OutboxEventDB, error: Exception) -> None:
 
 
 def default_producer() -> AIOKafkaProducer:
-    return AIOKafkaProducer(bootstrap_servers=settings.KAFKA_URL, acks="all")
+    return AIOKafkaProducer(
+        bootstrap_servers=settings.KAFKA_URL, acks="all", enable_idempotence=True
+    )
 
 
 async def publish_now(

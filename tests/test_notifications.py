@@ -7,7 +7,7 @@ from fastapi import HTTPException
 
 from app.core.config import settings
 from app.core.security import verify_verification_token
-from app.pubsub import async_kafka_consumer, async_kafka_producer
+from app.pubsub import async_kafka_consumer, async_kafka_producer, outbox
 from app.pubsub.async_kafka_consumer import AsyncKafkaConsumer
 from app.pubsub.async_kafka_producer import AsyncKafkaProducer
 from app.pubsub.services import mail_service
@@ -150,6 +150,28 @@ def test_consumer_without_committed_offset_starts_from_oldest_message(monkeypatc
 
     assert created_with["auto_offset_reset"] == "earliest"
     assert created_with["enable_auto_commit"] is False
+
+
+async def test_producers_drop_duplicates_from_network_retries(monkeypatch):
+    configs = []
+
+    class RecordingAIOKafkaProducer(FakeAIOKafkaProducer):
+        def __init__(self, **kwargs) -> None:
+            configs.append(kwargs)
+
+    monkeypatch.setattr(FakeAIOKafkaProducer, "fail_start", False)
+    monkeypatch.setattr(async_kafka_producer, "AIOKafkaProducer", RecordingAIOKafkaProducer)
+    monkeypatch.setattr(outbox, "AIOKafkaProducer", RecordingAIOKafkaProducer)
+    monkeypatch.setattr(AsyncKafkaProducer, "_producer", None)
+
+    await AsyncKafkaProducer.init()
+    await AsyncKafkaProducer.stop()
+    outbox.default_producer()
+
+    assert len(configs) == 2
+    for config in configs:
+        assert config["enable_idempotence"] is True
+        assert config["acks"] == "all"
 
 
 async def test_producer_is_not_marked_ready_after_failed_start(monkeypatch):
