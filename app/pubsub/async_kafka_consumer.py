@@ -25,7 +25,9 @@ class AsyncKafkaConsumer:
             "new-active-user",
             bootstrap_servers=settings.KAFKA_URL,
             group_id="notification-service-server",
-            auto_offset_reset="latest",
+            # With no committed offset (first start, or offsets expired after a long
+            # outage), "latest" would skip stored messages; handlers are idempotent.
+            auto_offset_reset="earliest",
             enable_auto_commit=False,
         )
         self.topic_callbacks = {
