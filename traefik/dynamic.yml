@@ -21,7 +21,6 @@ http:
     security-headers:
       headers:
         stsSeconds: 31536000
-        stsIncludeSubdomains: true
         contentTypeNosniff: true
         frameDeny: true
         referrerPolicy: no-referrer
