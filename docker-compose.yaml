@@ -22,6 +22,8 @@ services:
       context: .
     volumes:
       - .:/app
+    env_file:
+      - .env
     environment:
       - POSTGRES_HOST=db
       - REDIS_HOST=redis

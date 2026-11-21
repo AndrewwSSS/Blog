@@ -31,6 +31,25 @@ services:
       - default
       - edge
 
+  notification-service:
+    restart: unless-stopped
+    volumes: !reset []
+
+  celery:
+    restart: unless-stopped
+
+  celery-beat:
+    restart: unless-stopped
+
+  kafka:
+    restart: unless-stopped
+
+  redis:
+    restart: unless-stopped
+
+  elasticsearch:
+    restart: unless-stopped
+
 networks:
   edge:
     ipam:
