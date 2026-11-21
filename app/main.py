@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from app.api.v1.endpoints import user, posts, comments
 from app.pubsub.async_kafka_producer import AsyncKafkaProducer
 from app.core.async_elasticsearch_client import AsyncElasticsearchClient
+from app.core.log_filters import MaskVerificationTokenFilter
 
 
 logging.basicConfig(
@@ -14,6 +15,7 @@ logging.basicConfig(
 )
 logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 logging.getLogger("aiosqlite").setLevel(logging.INFO)
+logging.getLogger("uvicorn.access").addFilter(MaskVerificationTokenFilter())
 
 
 @asynccontextmanager
