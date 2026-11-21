@@ -1,8 +1,9 @@
 COMPOSE ?= docker compose
 API     ?= api
+PROD    := $(COMPOSE) -f docker-compose.yaml -f docker-compose.prod.yaml
 
 .DEFAULT_GOAL := help
-.PHONY: help env install build up up-debug down restart rebuild ps logs shell test test-local lint format migrate migration clean
+.PHONY: help env install build up up-debug up-prod down down-prod restart rebuild ps logs shell test test-local lint format migrate migration clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -22,8 +23,14 @@ up: ## Start all services in the background
 up-debug: ## Start all services plus Flower (:5555) and Kibana (:5601)
 	$(COMPOSE) --profile debug up --build -d
 
+up-prod: ## Start the production stack behind Traefik (HTTPS on :443, needs DOMAIN in .env)
+	$(PROD) up --build -d
+
 down: ## Stop all services, including debug tools (keeps volumes and data)
 	$(COMPOSE) --profile debug down
+
+down-prod: ## Stop the production stack, including Traefik (keeps volumes and data)
+	$(PROD) down
 
 restart: down up ## Restart all services
 
