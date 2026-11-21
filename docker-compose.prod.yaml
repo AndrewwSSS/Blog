@@ -44,11 +44,17 @@ services:
   kafka:
     restart: unless-stopped
 
+  # Reachable only inside the Docker network in production.
+  db:
+    ports: !reset []
+
   redis:
     restart: unless-stopped
+    ports: !reset []
 
   elasticsearch:
     restart: unless-stopped
+    ports: !reset []
 
 networks:
   edge:
