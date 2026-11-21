@@ -1,0 +1,38 @@
+http:
+  routers:
+    api:
+      rule: Host(`{{ env "DOMAIN" }}`)
+      entryPoints: [websecure]
+      service: api
+      middlewares: [rate-limit, body-limit, security-headers]
+      tls:
+        certResolver: letsencrypt
+
+  middlewares:
+    # Per client IP; the app keeps its stricter limits for login, register and resend.
+    rate-limit:
+      rateLimit:
+        average: 20
+        period: 1s
+        burst: 50
+    body-limit:
+      buffering:
+        maxRequestBodyBytes: 1048576
+    security-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: no-referrer
+
+  services:
+    api:
+      loadBalancer:
+        servers:
+          - url: http://api:8000
+
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12

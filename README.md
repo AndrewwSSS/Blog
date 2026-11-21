@@ -74,6 +74,25 @@ make down       # stop everything (data volumes are kept)
 
 The API is available at http://localhost:8000/docs. All ports are bound to localhost only.
 
+### Production (HTTPS with Traefik)
+
+`docker-compose.prod.yaml` puts [Traefik](https://doc.traefik.io/traefik/) in front of the API:
+it gets and renews a Let's Encrypt certificate, redirects HTTP to HTTPS, and adds a per-IP rate
+limit, a 1 MiB request body limit and security headers. The API port is no longer published, and
+the API runs without `--reload` or the source mount.
+
+1. Point the DNS record of your domain to the server and open ports 80 and 443.
+2. Set `DOMAIN` in `.env` (for example `DOMAIN=blog.example.com`).
+3. Start it:
+
+```bash
+make up-prod    # start the stack behind Traefik
+make down-prod  # stop it (data volumes and the certificate are kept)
+```
+
+Routes, limits and headers are in `traefik/dynamic.yml`. Traefik reads them from that file and has
+no access to the Docker socket. Certificates are stored in the `traefik_acme` volume.
+
 ### Testing and linting
 
 Tests use SQLite and fake Redis, so they need no running services:

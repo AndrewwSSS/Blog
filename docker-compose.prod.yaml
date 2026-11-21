@@ -1,0 +1,41 @@
+# Production overrides: docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
+# (or `make up-prod`). Traefik terminates HTTPS; the API is reachable only through it.
+services:
+  traefik:
+    image: traefik:v3.6.2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - traefik_acme:/acme
+    networks:
+      edge:
+        ipv4_address: 10.250.0.10
+    depends_on:
+      - api
+
+  api:
+    restart: unless-stopped
+    ports: !reset []
+    volumes: !reset []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment:
+      # Only Traefik may set X-Forwarded-For; must match its ipv4_address above.
+      - FORWARDED_ALLOW_IPS=10.250.0.10
+    networks:
+      - default
+      - edge
+
+networks:
+  edge:
+    ipam:
+      config:
+        - subnet: 10.250.0.0/24
+
+volumes:
+  traefik_acme:
