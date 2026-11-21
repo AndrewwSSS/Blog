@@ -14,7 +14,10 @@ class AsyncKafkaProducer:
             return None
 
         producer = AIOKafkaProducer(
-            bootstrap_servers=settings.KAFKA_URL, retry_backoff_ms=100, acks="all"
+            bootstrap_servers=settings.KAFKA_URL,
+            retry_backoff_ms=100,
+            acks="all",
+            enable_idempotence=True,
         )
         try:
             await producer.start()
