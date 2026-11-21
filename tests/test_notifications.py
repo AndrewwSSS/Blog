@@ -137,6 +137,21 @@ class FakeAIOKafkaProducer:
         FakeAIOKafkaProducer.stopped += 1
 
 
+def test_consumer_without_committed_offset_starts_from_oldest_message(monkeypatch):
+    created_with = {}
+
+    def fake_kafka_consumer(*topics, **config):
+        created_with.update(config)
+        return SimpleNamespace()
+
+    monkeypatch.setattr(async_kafka_consumer, "AIOKafkaConsumer", fake_kafka_consumer)
+
+    AsyncKafkaConsumer()
+
+    assert created_with["auto_offset_reset"] == "earliest"
+    assert created_with["enable_auto_commit"] is False
+
+
 async def test_producer_is_not_marked_ready_after_failed_start(monkeypatch):
     monkeypatch.setattr(async_kafka_producer, "AIOKafkaProducer", FakeAIOKafkaProducer)
     monkeypatch.setattr(AsyncKafkaProducer, "_producer", None)
