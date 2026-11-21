@@ -5,7 +5,11 @@ global:
 log:
   level: INFO
 
-accessLog: {}
+# Paths can carry email verification tokens; the API logs them with the token masked.
+accessLog:
+  fields:
+    names:
+      RequestPath: drop
 
 api:
   dashboard: false
