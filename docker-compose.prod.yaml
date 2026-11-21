@@ -31,6 +31,31 @@ services:
       - default
       - edge
 
+  notification-service:
+    restart: unless-stopped
+    volumes: !reset []
+
+  celery:
+    restart: unless-stopped
+
+  celery-beat:
+    restart: unless-stopped
+
+  kafka:
+    restart: unless-stopped
+
+  # Reachable only inside the Docker network in production.
+  db:
+    ports: !reset []
+
+  redis:
+    restart: unless-stopped
+    ports: !reset []
+
+  elasticsearch:
+    restart: unless-stopped
+    ports: !reset []
+
 networks:
   edge:
     ipam:

@@ -78,8 +78,10 @@ The API is available at http://localhost:8000/docs. All ports are bound to local
 
 `docker-compose.prod.yaml` puts [Traefik](https://doc.traefik.io/traefik/) in front of the API:
 it gets and renews a Let's Encrypt certificate, redirects HTTP to HTTPS, and adds a per-IP rate
-limit, a 1 MiB request body limit and security headers. The API port is no longer published, and
-the API runs without `--reload` or the source mount.
+limit, a 1 MiB request body limit and security headers. Only Traefik's ports 80 and 443 are
+published; the API, database, Redis and Elasticsearch are reachable only inside the Docker
+network. The services run the code built into the image (no source mounts, no `--reload`) and
+restart automatically.
 
 1. Point the DNS record of your domain to the server and open ports 80 and 443.
 2. Set `DOMAIN` in `.env` (for example `DOMAIN=blog.example.com`).
